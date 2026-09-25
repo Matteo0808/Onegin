@@ -1,5 +1,5 @@
 #ifndef COMPARATORS_H
-#define COMPORATORS_H
+#define COMPARATORS_H
 
 #include <stdio.h>
 #include <string.h>
@@ -7,6 +7,11 @@
 #include <assert.h>
 
 #define EPSYLON 1e-9
+
+struct Line{
+    const char *line;
+    size_t len;
+};
 
 int CompareIntAscend(const void* elem1, const void* elem2);
 int CompareIntDescend(const void* elem1, const void* elem2);
@@ -16,6 +21,7 @@ int CompareDoubAscend(const void* elem1, const void* elem2);
 int CompareDoubDescend(const void* elem1, const void* elem2);
 int CompareChrAscend(const void* elem1, const void* elem2);
 int CompareChrDescend(const void* elem1, const void* elem2);
+int CompareStrOneginAscend(const void *elem1, const void *elem2);
 
 bool IsEqual(const double number1, const double number2);
 
@@ -128,13 +134,19 @@ int CompareStrOneginAscend(const void *elem1, const void *elem2){
     assert(elem1 != NULL);
     assert(elem2 != NULL);
 
-    const char *str1 = *((const char **)elem1);
-    const char *str2 = *((const char **)elem2);
+    // const char *str1 = *((const char * const *)elem1);
+    // const char *str2 = *((const char * const *)elem2);
+
+    const char *str1 =  ((Line *)elem1)->line;
+    const char *str2 =  ((Line *)elem2)->line;
 
     assert(str1 != NULL);
     assert(str2 != NULL);
 
-    printf("^hui\n");
+    printf("str1 = %s \n", str1);
+    printf("str2 = %s", str2);
+
+    //printf("^hui\n");
 
     while (!isalpha(*str1)) { str1++;}
     printf("huistr1\n");
@@ -148,8 +160,10 @@ int CompareStrOneginAscend(const void *elem1, const void *elem2){
             return 0;
         }
         index++;
-        printf("^^hui\n");
+        //printf("^^hui\n");
     }
+
+    printf("HUUIIIIII");
     return tolower(str1[index]) - tolower(str2[index]);
 }
 

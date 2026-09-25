@@ -18,19 +18,36 @@ enum ErrSuc{
     RETURN_ERROR_FILEWRITE = 6
 };
 
+// struct Line{
+//     const char *line;
+//     size_t len;
+// };
+
 //TODO - struct!!!!!!!!!!!!!!!
 //TODO - reverse sort, virginity text output, argc/argv
 
 ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize);
 ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize);
-ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize);
-void GetLens(size_t *linesLen, const char **arrLines, size_t arrSize);
-void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufSize);
+ErrSuc OpenOutFile(Line *arrLines, size_t arrSize);
+void GetLens(Line *arrLines, size_t arrSize);
+void BufferToLinesFragmentation(char *Buffer, Line *arrLines, size_t bufSize);
 size_t RunThroughBuffer(char *Buffer, size_t bufSize);
 
 int main(){
 
-    int fileIn_Descriptor = 0;
+    // const char *arr1[4] = {"qweqweqwe1", "qweqweqwe12", "1", "qweeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee1"};
+    // size_t arrSize1 = sizeof(arr1);
+    // printfArr(arr1, arrSize1, sizeof(const char*), "%s");
+
+    // printf("gay\n");
+
+    // QuickSort(arr1, arrSize1, 0, arrSize1 - 1, CompareStrOneginAscend);
+
+    // printfArr(arr1, arrSize1, sizeof(const char*), "%s");
+
+    // return 0;
+
+    int fileIn_Descriptor = 0; // TODO: fix naming
     size_t fileSize = 0;
 
     switch (OpenInFile("Onegin.txt", &fileIn_Descriptor, &fileSize)){
@@ -54,6 +71,7 @@ int main(){
     // bufferBeta[0] = '\0';
     // bufferBeta[fileSize + 1] = '\0';
 
+    // TODO: Buffer -> buffer
     char *Buffer = bufferBeta + 1;
     assert(Buffer != NULL);
 
@@ -83,9 +101,14 @@ int main(){
 
     // return 0;
 
-    const char *arrLines[arrSize] = {};
-    size_t arrElemSize = sizeof(arrLines[0]);
-    size_t linesLen[arrSize] = {};
+    // TODO: VLA - variable length array -- полное говно (budet crash), сделать calloc 
+    ///@note completed
+    
+    Line *arrLines = (Line *)calloc(arrSize, sizeof(Line));
+    
+    // const char *arrLines[arrSize] = {};
+    // size_t arrElemSize = sizeof(arrLines[0]);
+    // size_t linesLen[arrSize] = {};
 
     printf("debug3\n");
 
@@ -95,21 +118,20 @@ int main(){
     printf("debug4\n");
 
     ///@note strlen of each line
-    GetLens(linesLen, arrLines, arrSize);
+    GetLens(arrLines, arrSize);
 
     printf("debug5\n");
 
-    printfArr(linesLen, arrSize, sizeof(size_t), "%d");
-    printfArr(arrLines, arrSize, arrElemSize, "%s");
+    printfArr(&arrLines->len, arrSize, sizeof(Line), "%d");
+    printfArr(&arrLines->line, arrSize, sizeof(Line), "%s");
 
     printf("hui1\n");
 
-    QuickSort(arrLines, arrElemSize, 0, arrSize - 1, CompareStrOneginAscend);
+    QuickSort(arrLines, sizeof(const char *), 0, arrSize - 1, CompareStrOneginAscend);
 
     printf("hui2\n");
 
-    int fileOut_Descriptor = 0;
-    switch (OpenOutFile(arrLines, linesLen, arrSize)){
+    switch (OpenOutFile(arrLines, arrSize)){
         case(RETURN_ERROR_FILECREATE):
             printf("Error in input file creating or opening in fuction open()\n");
             return RETURN_ERROR;
@@ -135,9 +157,11 @@ ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize
     // if(*fileIn == NULL) {return RETURN_ERROR2;}
 
     struct stat fileStat = {};
+    // TODO: if style fix с пробелом везде сделай
     if(fstat(*fileIn_Descriptor, &fileStat) == -1) {return RETURN_ERROR_FSTAT;}
 
     *fileSize = fileStat.st_size;
+    assert(*fileSize < 1<<32);
     return RETURN_SUCCESS;
 }
 
@@ -152,12 +176,13 @@ ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize){
         close(fileIn_Descriptor);
         return RETURN_ERROR_FILEREAD;
     }
+    
 
     close(fileIn_Descriptor);
     return RETURN_SUCCESS;
 }
 
-ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize){
+ErrSuc OpenOutFile(Line *arrLines, size_t arrSize){
     assert(arrLines != NULL);
     assert(linesLen != NULL);
 
@@ -167,8 +192,8 @@ ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize){
         return RETURN_ERROR_FILECREATE;
     }
     
-    for(int index = 0; index < arrSize; index++){
-        if (write(fileOut_Descriptor, arrLines[index], linesLen[index]) <= 0){
+    for(size_t index = 0; index < arrSize; index++){
+        if (write(fileOut_Descriptor, arrLines[index].line, arrLines[index].len) <= 0){
             close(fileOut_Descriptor);
             return RETURN_ERROR_FILEWRITE;
         }
@@ -181,56 +206,55 @@ size_t RunThroughBuffer(char *Buffer, size_t bufSize){
     assert(Buffer != NULL);
 
     size_t endlCount = 0;
-    for(int index = 0; index < bufSize; index++){
+    for(size_t index = 0; index < bufSize; index++){
         if(Buffer[index] == '\r'){
-            Buffer[index] = '0';
+            Buffer[index] = '\0';
         }
         if(Buffer[index] == '\n'){
             endlCount++;
             Buffer[index] = '\0';
-            while(1){
-                if(Buffer[index + 1] == '\n'){
-                    Buffer[index + 1] = '\0';
-                    index++;
-                }
-                else{
-                    break;
-                }
+            while((index + 1) < bufSize && Buffer[index + 1] == '\n'){
+                Buffer[index + 1] = '\0';
+                index++;
             }
-            
         }
     }
     return endlCount;
 }
 
-void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufSize){
+void BufferToLinesFragmentation(char *Buffer, Line *arrLines, size_t bufSize){
     assert(Buffer != NULL);
     assert(arrLines != NULL);
 
+    printf("%s\n", Buffer);
+    printf("%p\n", arrLines);
+    printf("%llu\n", bufSize);
+
     int linesIndex = 0;
-    for(int index = -1; index < bufSize - 1; index++){
-        printf("123");
-        if(*(Buffer + index) == '\0'){
-            while(*(Buffer + (index + 1)) == '\0' && (index + 1) < bufSize){
-                printf("huische\n");
+    for(size_t index = -1; (int)index < (int)(bufSize - 1); index++){
+        //printf("%d\n", index);
+        //printf("123\n");
+        if(Buffer[index] == '\0'){
+            while((index + 1) < bufSize && Buffer[index + 1] == '\0'){
+                //printf("huische\n");
                 index++;
             }
-            *(arrLines + linesIndex) = Buffer + (index + 1);
+            arrLines[linesIndex].line = Buffer + (index + 1);
             linesIndex++;
         }
     }
 }
 
-void GetLens(size_t *linesLen, const char **arrLines, size_t arrSize){
+void GetLens(Line *arrLines, size_t arrSize){
     assert(linesLen != NULL);
     assert(arrLines != NULL);
 
     for(size_t index = 0; index < arrSize; index++){
-        if(arrLines[index] == 0){
-            linesLen[index] = 0;
+        if(arrLines[index].line == 0){
+            arrLines[index].len = 0;
         }
         else{
-           linesLen[index] = strlen(arrLines[index]);
+           arrLines[index].len = strlen(arrLines[index].line);
         }
     }
 }

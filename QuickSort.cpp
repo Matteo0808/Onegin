@@ -60,12 +60,15 @@ void QuickSort(void *arr, size_t arrElemSize, size_t __left, size_t __right, int
     free(pivot);
 }
 
-void Swap(void* elem1, void* elem2, size_t arrElemSize ){
+void Swap(void* elem1, void* elem2, size_t arrElemSize){
     assert(elem1 != 0);
     assert(elem2 != 0);
 
-    char temp[arrElemSize];
+    char temp[MAXSIZE];
     
+    if(arrElemSize > MAXSIZE){
+        // TODO: 
+    }
     memcpy(temp, elem2, arrElemSize);
     memcpy(elem2, elem1, arrElemSize);
     memcpy(elem1, temp, arrElemSize);
