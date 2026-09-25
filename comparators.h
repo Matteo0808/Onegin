@@ -147,6 +147,7 @@ int CompareStrOneginAscend(const void *elem1, const void *elem2){
         if(str1 == 0){
             return 0;
         }
+        index++;
         printf("^^hui\n");
     }
     return tolower(str1[index]) - tolower(str2[index]);

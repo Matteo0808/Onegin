@@ -10,10 +10,16 @@
 
 enum ErrSuc{
     RETURN_SUCCESS = 0,
-    RETURN_ERROR1 = 1,
-    RETURN_ERROR2 = 2,
-    RETURN_ERROR3 = 3
+    RETURN_ERROR = 1,
+    RETURN_ERROR_FILEOPEN = 2,
+    RETURN_ERROR_FSTAT = 3,
+    RETURN_ERROR_FILEREAD = 4,
+    RETURN_ERROR_FILECREATE = 5,
+    RETURN_ERROR_FILEWRITE = 6
 };
+
+//TODO - struct!!!!!!!!!!!!!!!
+//TODO - reverse sort, virginity text output, argc/argv
 
 ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize);
 ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize);
@@ -26,13 +32,14 @@ int main(){
 
     int fileIn_Descriptor = 0;
     size_t fileSize = 0;
+
     switch (OpenInFile("Onegin.txt", &fileIn_Descriptor, &fileSize)){
-        case(RETURN_ERROR1):
+        case(RETURN_ERROR_FILEOPEN):
             printf("Error in input file opening in fuction open()\n");
-            return RETURN_ERROR1;
-        case(RETURN_ERROR2):
+            return RETURN_ERROR;
+        case(RETURN_ERROR_FSTAT):
             printf("Error in input file opening in fuction fstat()\n");
-            return RETURN_ERROR2;
+            return RETURN_ERROR;
         default:
             break;
     }
@@ -48,27 +55,31 @@ int main(){
     // bufferBeta[fileSize + 1] = '\0';
 
     char *Buffer = bufferBeta + 1;
+    assert(Buffer != NULL);
 
     switch (ReadInFile(fileIn_Descriptor, Buffer, fileSize)){
-        case(RETURN_ERROR1):
+        case(RETURN_ERROR_FILEREAD):
             printf("Error in input file reading in fuction read()\n");
-            return RETURN_ERROR1;
+            return RETURN_ERROR;
         default:
             break;
     }
 
-    // int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    // write(fileOut_Descriptor, Buffer, fileSize);
+    ///@note writing buffer before sorting
+    int fileOut_unsorted_Descriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    write(fileOut_unsorted_Descriptor, Buffer, fileSize);
 
     // return 0;
 
 
     printf("debug2\n");
 
+    ///@note changing '\r' and '\n' to '\0' and number of lines calculating
     size_t arrSize = RunThroughBuffer(Buffer, fileSize);
 
-    // int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    // write(fileOut_Descriptor, Buffer, fileSize);
+    ///@note writing buffer in one line
+    int fileOut_in_one_line_Descriptor = open("onegin_out_in_one_line.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    write(fileOut_in_one_line_Descriptor, Buffer, fileSize);
 
     // return 0;
 
@@ -78,10 +89,12 @@ int main(){
 
     printf("debug3\n");
 
+    ///@note fragmentation buffer to lines
     BufferToLinesFragmentation(Buffer, arrLines, fileSize);
 
     printf("debug4\n");
 
+    ///@note strlen of each line
     GetLens(linesLen, arrLines, arrSize);
 
     printf("debug5\n");
@@ -97,12 +110,12 @@ int main(){
 
     int fileOut_Descriptor = 0;
     switch (OpenOutFile(arrLines, linesLen, arrSize)){
-        case(RETURN_ERROR1):
+        case(RETURN_ERROR_FILECREATE):
             printf("Error in input file creating or opening in fuction open()\n");
-            return RETURN_ERROR1;
-        case(RETURN_ERROR2):
+            return RETURN_ERROR;
+        case(RETURN_ERROR_FILEWRITE):
             printf("Error in input file writing in fuction write()\n");
-            return RETURN_ERROR2;
+            return RETURN_ERROR;
         default:
             break;
     }
@@ -116,13 +129,13 @@ ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize
     assert(fileSize != 0);
     
     *fileIn_Descriptor = open(fileName, O_RDONLY);
-    if(*fileIn_Descriptor == -1) {return RETURN_ERROR1;}
+    if(*fileIn_Descriptor == -1) {return RETURN_ERROR_FILEOPEN;}
     
     // *fileIn = fdopen(*fileIn_Descriptor, "r");
     // if(*fileIn == NULL) {return RETURN_ERROR2;}
 
     struct stat fileStat = {};
-    if(fstat(*fileIn_Descriptor, &fileStat) == -1) {return RETURN_ERROR2;}
+    if(fstat(*fileIn_Descriptor, &fileStat) == -1) {return RETURN_ERROR_FSTAT;}
 
     *fileSize = fileStat.st_size;
     return RETURN_SUCCESS;
@@ -137,7 +150,7 @@ ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize){
 
     if(read(fileIn_Descriptor, Buffer, fileSize) <= 0){
         close(fileIn_Descriptor);
-        return RETURN_ERROR1;
+        return RETURN_ERROR_FILEREAD;
     }
 
     close(fileIn_Descriptor);
@@ -149,15 +162,15 @@ ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize){
     assert(linesLen != NULL);
 
     int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    if(fileOut_Descriptor == NULL){
+    if(fileOut_Descriptor == -1){
         close(fileOut_Descriptor);
-        return RETURN_ERROR1;
+        return RETURN_ERROR_FILECREATE;
     }
     
     for(int index = 0; index < arrSize; index++){
         if (write(fileOut_Descriptor, arrLines[index], linesLen[index]) <= 0){
             close(fileOut_Descriptor);
-            return RETURN_ERROR2;
+            return RETURN_ERROR_FILEWRITE;
         }
     }
     close(fileOut_Descriptor);
@@ -177,6 +190,7 @@ size_t RunThroughBuffer(char *Buffer, size_t bufSize){
             Buffer[index] = '\0';
             while(1){
                 if(Buffer[index + 1] == '\n'){
+                    Buffer[index + 1] = '\0';
                     index++;
                 }
                 else{
@@ -196,12 +210,12 @@ void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufS
     int linesIndex = 0;
     for(int index = -1; index < bufSize - 1; index++){
         printf("123");
-        if(Buffer[index] == '\0'){
-            while(Buffer[index + 1] == '\0' && (index + 1) < bufSize){
+        if(*(Buffer + index) == '\0'){
+            while(*(Buffer + (index + 1)) == '\0' && (index + 1) < bufSize){
                 printf("huische\n");
                 index++;
             }
-            arrLines[linesIndex] = Buffer + (index + 1);
+            *(arrLines + linesIndex) = Buffer + (index + 1);
             linesIndex++;
         }
     }
