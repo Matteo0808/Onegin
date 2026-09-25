@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <assert.h>
 
 #define EPSYLON 1e-9
@@ -135,30 +136,20 @@ int CompareStrOneginAscend(const void *elem1, const void *elem2){
 
     printf("^hui\n");
 
-    if (str1[0] == '\"' || str1[0] == '\''){ str1++;}
-    printf("hui1\n");
-    if (str2[0] == '\"' || str2[0] == '\''){ str2++;}
-    printf("hui2\n");
+    while (!isalpha(*str1)) { str1++;}
+    printf("huistr1\n");
+    while (!isalpha(*str2)){ str2++;}
+    printf("huistr2\n");
 
     int index = 0;
 
-    while(1){
-
-        printf("^^hui\n");
-
-        if(str1[index] > str2[index]){
-            return -1;
-        }
-        else if(str1[index] < str2[index]){
-            return 1;
-        }
-        else if(str1[index] == '\0' && str2[index] == '\0'){
+    while(tolower(str1[index]) == tolower(str2[index])){
+        if(str1 == 0){
             return 0;
         }
-        else{
-            index++;
-        }
+        printf("^^hui\n");
     }
+    return tolower(str1[index]) - tolower(str2[index]);
 }
 
 #endif

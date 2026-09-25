@@ -10,11 +10,13 @@
 
 enum ErrSuc{
     RETURN_SUCCESS = 0,
-    RETURN_ERROR = 1
+    RETURN_ERROR1 = 1,
+    RETURN_ERROR2 = 2,
+    RETURN_ERROR3 = 3
 };
 
-ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, FILE *fileIn, size_t* fileSize);
-ErrSuc ReadInFile(int fileIn_Descriptor, FILE *fileIn, char *Buffer, size_t fileSize);
+ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize);
+ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize);
 ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize);
 void GetLens(size_t *linesLen, const char **arrLines, size_t arrSize);
 void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufSize);
@@ -23,38 +25,69 @@ size_t RunThroughBuffer(char *Buffer, size_t bufSize);
 int main(){
 
     int fileIn_Descriptor = 0;
-    FILE *fileIn;
     size_t fileSize = 0;
-    if (OpenInFile("Onegin.txt", &fileIn_Descriptor, fileIn, &fileSize) == RETURN_ERROR){
-        printf("Error in input file opening\n");
-        return RETURN_ERROR;
+    switch (OpenInFile("Onegin.txt", &fileIn_Descriptor, &fileSize)){
+        case(RETURN_ERROR1):
+            printf("Error in input file opening in fuction open()\n");
+            return RETURN_ERROR1;
+        case(RETURN_ERROR2):
+            printf("Error in input file opening in fuction fstat()\n");
+            return RETURN_ERROR2;
+        default:
+            break;
     }
 
+    printf("debug0\n");
+    
     char *bufferBeta = (char *)calloc(fileSize + 2, sizeof(char));
     assert(bufferBeta != NULL);
-
-    bufferBeta[0] = '\0';
-    bufferBeta[fileSize + 1] = '\0';
+    
+    printf("debug1\n");
+    
+    // bufferBeta[0] = '\0';
+    // bufferBeta[fileSize + 1] = '\0';
 
     char *Buffer = bufferBeta + 1;
 
-    if (ReadInFile(fileIn_Descriptor, fileIn, Buffer, fileSize) == RETURN_ERROR){
-        printf("Error in input file reading\n");
-        return RETURN_ERROR;
+    switch (ReadInFile(fileIn_Descriptor, Buffer, fileSize)){
+        case(RETURN_ERROR1):
+            printf("Error in input file reading in fuction read()\n");
+            return RETURN_ERROR1;
+        default:
+            break;
     }
 
+    // int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    // write(fileOut_Descriptor, Buffer, fileSize);
+
+    // return 0;
+
+
+    printf("debug2\n");
+
     size_t arrSize = RunThroughBuffer(Buffer, fileSize);
+
+    // int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    // write(fileOut_Descriptor, Buffer, fileSize);
+
+    // return 0;
 
     const char *arrLines[arrSize] = {};
     size_t arrElemSize = sizeof(arrLines[0]);
     size_t linesLen[arrSize] = {};
 
+    printf("debug3\n");
+
     BufferToLinesFragmentation(Buffer, arrLines, fileSize);
+
+    printf("debug4\n");
 
     GetLens(linesLen, arrLines, arrSize);
 
-    printfArr(arrLines, arrSize, arrElemSize, "%s");
+    printf("debug5\n");
+
     printfArr(linesLen, arrSize, sizeof(size_t), "%d");
+    printfArr(arrLines, arrSize, arrElemSize, "%s");
 
     printf("hui1\n");
 
@@ -63,38 +96,48 @@ int main(){
     printf("hui2\n");
 
     int fileOut_Descriptor = 0;
-    if (OpenOutFile(arrLines, linesLen, arrSize) == RETURN_ERROR){
-        printf("Error in output file creating, opening or writing\n");
-        return RETURN_ERROR;
+    switch (OpenOutFile(arrLines, linesLen, arrSize)){
+        case(RETURN_ERROR1):
+            printf("Error in input file creating or opening in fuction open()\n");
+            return RETURN_ERROR1;
+        case(RETURN_ERROR2):
+            printf("Error in input file writing in fuction write()\n");
+            return RETURN_ERROR2;
+        default:
+            break;
     }
     
     free(bufferBeta);
 }
 
-ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, FILE *fileIn, size_t* fileSize){
+ErrSuc OpenInFile(const char *fileName, int *fileIn_Descriptor, size_t* fileSize){
+    assert(fileName != NULL);
+    assert(fileIn_Descriptor != NULL);
+    assert(fileSize != 0);
     
     *fileIn_Descriptor = open(fileName, O_RDONLY);
-    if(*fileIn_Descriptor == -1) {return RETURN_ERROR;}
+    if(*fileIn_Descriptor == -1) {return RETURN_ERROR1;}
     
-    fileIn = fdopen(*fileIn_Descriptor, "r");
-    if(fileIn == NULL) {return RETURN_ERROR;}
+    // *fileIn = fdopen(*fileIn_Descriptor, "r");
+    // if(*fileIn == NULL) {return RETURN_ERROR2;}
 
     struct stat fileStat = {};
-    if(fstat(*fileIn_Descriptor, &fileStat) == -1) {return RETURN_ERROR;}
+    if(fstat(*fileIn_Descriptor, &fileStat) == -1) {return RETURN_ERROR2;}
 
     *fileSize = fileStat.st_size;
     return RETURN_SUCCESS;
 }
 
-ErrSuc ReadInFile(int fileIn_Descriptor, FILE *fileIn, char *Buffer, size_t fileSize){
-    if(setvbuf(fileIn, Buffer, _IONBF, fileSize) == 0){
-        close(fileIn_Descriptor);
-        return RETURN_ERROR;
-    }
+ErrSuc ReadInFile(int fileIn_Descriptor, char *Buffer, size_t fileSize){
+    assert(Buffer != 0);
+    // if(setvbuf(fileIn, Buffer, _IONBF, fileSize) == 0){
+    //     close(fileIn_Descriptor);
+    //     return RETURN_ERROR1;
+    // }
 
-    if(read(fileIn_Descriptor, Buffer, fileSize) > 0){
+    if(read(fileIn_Descriptor, Buffer, fileSize) <= 0){
         close(fileIn_Descriptor);
-        return RETURN_ERROR;
+        return RETURN_ERROR1;
     }
 
     close(fileIn_Descriptor);
@@ -102,53 +145,78 @@ ErrSuc ReadInFile(int fileIn_Descriptor, FILE *fileIn, char *Buffer, size_t file
 }
 
 ErrSuc OpenOutFile(const char **arrLines, size_t *linesLen, size_t arrSize){
+    assert(arrLines != NULL);
+    assert(linesLen != NULL);
+
     int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
     if(fileOut_Descriptor == NULL){
         close(fileOut_Descriptor);
-        return RETURN_ERROR;
+        return RETURN_ERROR1;
     }
     
     for(int index = 0; index < arrSize; index++){
         if (write(fileOut_Descriptor, arrLines[index], linesLen[index]) <= 0){
             close(fileOut_Descriptor);
-            return RETURN_ERROR;
+            return RETURN_ERROR2;
         }
     }
     close(fileOut_Descriptor);
     return RETURN_SUCCESS;
 }
 
-void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufSize){
-    for(int index = -1; index < bufSize - 1; index++){
-        if(Buffer[index] == '\0'){
-            arrLines[index + 1] = Buffer + (index + 1);
-        }
-    }
-}
-
-void GetLens(size_t *linesLen, const char **arrLines, size_t arrSize){
-    for(int index = 0; index < arrSize; index++){
-        linesLen[index] = strnlen(arrLines[index], MAXSIZE);
-    }
-}
-
 size_t RunThroughBuffer(char *Buffer, size_t bufSize){
+    assert(Buffer != NULL);
+
     size_t endlCount = 0;
     for(int index = 0; index < bufSize; index++){
+        if(Buffer[index] == '\r'){
+            Buffer[index] = '0';
+        }
         if(Buffer[index] == '\n'){
             endlCount++;
             Buffer[index] = '\0';
-            int jindex = 0;
             while(1){
-                jindex++;
-                if(Buffer[index + jindex] == '\n'){
+                if(Buffer[index + 1] == '\n'){
                     index++;
                 }
                 else{
                     break;
                 }
             }
+            
         }
     }
     return endlCount;
+}
+
+void BufferToLinesFragmentation(char *Buffer, const char **arrLines, size_t bufSize){
+    assert(Buffer != NULL);
+    assert(arrLines != NULL);
+
+    int linesIndex = 0;
+    for(int index = -1; index < bufSize - 1; index++){
+        printf("123");
+        if(Buffer[index] == '\0'){
+            while(Buffer[index + 1] == '\0' && (index + 1) < bufSize){
+                printf("huische\n");
+                index++;
+            }
+            arrLines[linesIndex] = Buffer + (index + 1);
+            linesIndex++;
+        }
+    }
+}
+
+void GetLens(size_t *linesLen, const char **arrLines, size_t arrSize){
+    assert(linesLen != NULL);
+    assert(arrLines != NULL);
+
+    for(size_t index = 0; index < arrSize; index++){
+        if(arrLines[index] == 0){
+            linesLen[index] = 0;
+        }
+        else{
+           linesLen[index] = strlen(arrLines[index]);
+        }
+    }
 }
