@@ -8,11 +8,6 @@
 
 #define EPSYLON 1e-9
 
-struct Line{
-    const char *line;
-    size_t len;
-};
-
 int CompareIntAscend(const void* elem1, const void* elem2);
 int CompareIntDescend(const void* elem1, const void* elem2);
 int CompareStrAscend(const void* elem1, const void* elem2);
@@ -23,7 +18,7 @@ int CompareChrAscend(const void* elem1, const void* elem2);
 int CompareChrDescend(const void* elem1, const void* elem2);
 int CompareStrOneginAscend(const void *elem1, const void *elem2);
 
-bool IsEqual(const double number1, const double number2);
+int IsEqual(const double number1, const double number2);
 
 int CompareIntAscend(const void* elem1, const void* elem2){
     assert(elem1 != 0);
@@ -93,7 +88,7 @@ int CompareDoubDescend(const void* elem1, const void* elem2){
     else {return 0;}
 }
 
-bool IsEqual(const double number1, const double number2){
+int IsEqual(const double number1, const double number2){
 
     double delta = number1 - number2;
     if (delta > EPSYLON){
@@ -134,38 +129,44 @@ int CompareStrOneginAscend(const void *elem1, const void *elem2){
     assert(elem1 != NULL);
     assert(elem2 != NULL);
 
-    // const char *str1 = *((const char * const *)elem1);
-    // const char *str2 = *((const char * const *)elem2);
+    const char *str1 = *((const char * const *)elem1);
+    const char *str2 = *((const char * const *)elem2);
 
-    const char *str1 =  ((Line *)elem1)->line;
-    const char *str2 =  ((Line *)elem2)->line;
+    printf("str1 = [%s]\n", str1);
+    printf("str2 = [%s]\n", str2);
+
+    // const char *str1 =  ((Line *)elem1)->line;
+    // const char *str2 =  ((Line *)elem2)->line;
 
     assert(str1 != NULL);
     assert(str2 != NULL);
 
-    printf("str1 = %s \n", str1);
-    printf("str2 = %s", str2);
 
     //printf("^hui\n");
 
-    while (!isalpha(*str1)) { str1++;}
-    printf("huistr1\n");
-    while (!isalpha(*str2)){ str2++;}
-    printf("huistr2\n");
+    while (*str1 && !isalpha(*str1)) { str1++;}
+    while (*str2 && !isalpha(*str2)){ str2++;}
 
-    int index = 0;
-
-    while(tolower(str1[index]) == tolower(str2[index])){
-        if(str1 == 0){
-            return 0;
-        }
-        index++;
-        //printf("^^hui\n");
+    while (*str1 && *str2) {
+        int c1 = tolower((unsigned char)*str1);
+        int c2 = tolower((unsigned char)*str2);
+        if (c1 != c2) return c1 - c2;
+        str1++; str2++;
     }
-
-    printf("HUUIIIIII");
-    return tolower(str1[index]) - tolower(str2[index]);
+    return 0;
 }
+//     int index = 0;
+
+//     while(tolower(str1[index]) == tolower(str2[index])){
+//         if(str1[index] == 0){
+//             return 0;
+//         }
+//         index++;
+//     }
+
+//     printf("HUUIIIIII");
+//     return tolower(str1[index]) - tolower(str2[index]);
+// }
 
 #endif
 

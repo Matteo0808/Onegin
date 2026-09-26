@@ -15,9 +15,9 @@ enum dataType{
 };
 
 void printfArr(void* arr, size_t arrSize, size_t arrElemSize, const char* spezificator);
-void printfArrDebug(void* arr, size_t arrSize, size_t arrElemSize,
-                    void FormatFunc(const void *elem, char *buf, size_t bufSize));
-void FormatInt(const void *elem, char *buf, size_t bufSize);
+// void printfArrDebug(void* arr, size_t arrSize, size_t arrElemSize,
+//                     void FormatFunc(const void *elem, char *buf, size_t bufSize));
+// void FormatInt(const void *elem, char *buf, size_t bufSize);
 
 
 void printfArr(void* arr, size_t arrSize, size_t arrElemSize, const char* format){
@@ -28,16 +28,16 @@ void printfArr(void* arr, size_t arrSize, size_t arrElemSize, const char* format
     printf("\n=======================================================================================\n");
     printf("Array: \n");
     for(size_t index = 0; index < arrSize; index++){
-        assert(index >= 0 && index < arrSize);
+        assert((ssize_t)index >= 0 && index < arrSize);
 
         snprintf(strRes, MAXSIZE, "[Elem %llu]: %s\t", index, format);
         assert(strRes != 0);
-        printf(strRes, *((char**)((char *)arr + index * arrElemSize)));
+        printf(strRes, *((char*)(*((char *)arr) + index * arrElemSize)));
     }
     printf("\n=======================================================================================\n");
 }
 
-
+/*
 void printfArrDebug(void* arr, size_t arrSize, size_t arrElemSize,
                     void FormatFunc(const void *elem, char *buf, size_t bufSize)){
     assert(arr != NULL);
@@ -98,4 +98,5 @@ void FormatInt(const void *elem, char *buf, size_t bufSize){
     snprintf(buf, bufSize, "%d", *((const int *)elem));
 }
 
+*/
 #endif
