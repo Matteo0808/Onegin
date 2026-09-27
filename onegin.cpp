@@ -7,7 +7,7 @@
 #include <assert.h>
 
 struct Line{
-    const char *line;
+    char *line;
     size_t len;
 };
 
@@ -31,9 +31,13 @@ enum ErrSuc{
     RETURN_ERROR_FSTAT = 3,
     RETURN_ERROR_FILEREAD = 4,
     RETURN_ERROR_FILECREATE = 5,
-    RETURN_ERROR_FILEWRITE = 6,
+    RETURN_ERROR_FILEWRITE_TASK1 = 6,
     RETURN_ERROR_TOO_LARGE_FILE_SIZE = 7,
-    RETURN_ERROR_MEMORY_ALLOCATION = 8
+    RETURN_ERROR_MEMORY_ALLOCATION = 8,
+    RETURN_ERROR_FILEADD_TASK2 = 9,
+    RETURN_ERROR_FILEWRITE_TASK2 = 10,
+    RETURN_ERROR_FILEADD_TASK3 = 11,
+    RETURN_ERROR_FILEWRITE_TASK3 = 12
 };
 
 
@@ -41,45 +45,60 @@ enum ErrSuc{
 ///@note completed
 
 //TODO - reverse sort
+///@note completed
+
 //TODO - virginity text output
-//TODO - argc/argv
+///@note completed fuck you bitch
+
+
+//TODO: main clear
+///@note completed
+
+//TODO: onegin 2 strings - WORKING!!!
+///@note completed
+
+//TODO: isolate comparator - WORKING!!!
+///@note completed
+
+//TODO: qsort() standart - my qsort ne workaet - vse, teper' workaet
+///@note completed
+
+//TODO: before write runtroughtbuffer \0 -> \n - found more optimal solution
+///@note completed
+
+
+//TODO: errors
+///@note completed
+
+//TODO: sprintf() вместо write / File* вместо descr, ask ded
+///@note completed
+
+// TODO: fix naming
+///@note compleeted
+
+//TODO - argc/argv - in progress
+
+//TODO - README - in progress
+
+//TODO: func args in one struct - in progress
+
+//TODO - clear project
 
 ErrSuc OpenInFile(const char *fileName, int *fileInDescriptor, size_t* fileSize);
 ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize);
 ErrSuc OpenOutFileTask1(Line *arrLines, size_t arrSize);
 ErrSuc OpenOutFileTask2(Line *arrLines, size_t arrSize);
-void GetLenghts(Line *arrLines, size_t arrSize);
-void BufferToLinesFragmentation(char *buffer, Line *arrLines, size_t bufSize, size_t arrSize);
+ErrSuc OpenOutFileTask3(char *buffer, size_t bufSize);
+
 size_t RunThroughBuffer(char *buffer, size_t bufSize);
+void BufferToLinesFragmentation(char *buffer, Line *arrLines, size_t bufSize, size_t arrSize);
+void GetLenghts(Line *arrLines, size_t arrSize);
+void RunThroughBufferBack(char *buffer, size_t bufSize);
+
 void ProgramDestroy(Info *programInfo, char *buffer, Line* arrLines);
 
 int main(){
-    //TODO: main
-    ///@note completed
-
-    //TODO: onegin 2 strings - WORKING!!!
-    ///@note completed
-
-    //TODO: isolate comparator - WORKING!!!
-    ///@note completed
-
-    //TODO: qsort() standart - my qsort ne workaet - vse, teper' workaet
-    ///@note completed
-
-    //TODO: before write runtroughtbuffer \0 -> \n - found more optimal solution
-    ///@note completed
-
-    //TODO: func args in one struct
-
-    //TODO: errors
-    ///@note completed
-
-    //TODO: sprintf() вместо write / File* вместо descr, ask ded
-    ///@note completed
-
-    // TODO: fix naming
-    ///@note compleeted
-
+    
     Info programInfo = {}; 
 
     //printf("debug0\n");
@@ -145,11 +164,11 @@ int main(){
     
     //qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginDescend);
 
-    switch (OpenOutFile(programInfo.arrLines, programInfo.arrSize, TASK1)){
+    switch (OpenOutFileTask1(programInfo.arrLines, programInfo.arrSize)){
         case(RETURN_ERROR_FILECREATE):
             printf("Error in input file creating or opening in fuction open()\n");
             return RETURN_ERROR;
-        case(RETURN_ERROR_FILEWRITE):
+        case(RETURN_ERROR_FILEWRITE_TASK1):
             printf("Error in input file writing in fuction write()\n");
             return RETURN_ERROR;
         default:
@@ -159,6 +178,28 @@ int main(){
     qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginDescend);
         
     //printf("debug6\n");
+
+    switch (OpenOutFileTask2(programInfo.arrLines, programInfo.arrSize)){
+        case(RETURN_ERROR_FILEADD_TASK2):
+            printf("Error in input file creating or opening in fuction open()\n");
+            return RETURN_ERROR;
+        case(RETURN_ERROR_FILEWRITE_TASK2):
+            printf("Error in input file writing in fuction write()\n");
+            return RETURN_ERROR;
+        default:
+            break;
+    }
+
+    switch (OpenOutFileTask3(programInfo.buffer, programInfo.fileSize)){
+        case(RETURN_ERROR_FILEADD_TASK3):
+            printf("Error in input file creating or opening in fuction open()\n");
+            return RETURN_ERROR;
+        case(RETURN_ERROR_FILEWRITE_TASK3):
+            printf("Error in input file writing in fuction write()\n");
+            return RETURN_ERROR;
+        default:
+            break;
+    }
     
     ProgramDestroy(&programInfo, programInfo.buffer, programInfo.arrLines);
 }
@@ -202,7 +243,7 @@ ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize){
     return RETURN_SUCCESS;
 }
 
-ErrSuc OpenOutFile(Line *arrLines, size_t arrSize){
+ErrSuc OpenOutFileTask1(Line *arrLines, size_t arrSize){
     assert(arrLines != NULL);
 
     //printf("OpenOutFile\n");
@@ -213,15 +254,65 @@ ErrSuc OpenOutFile(Line *arrLines, size_t arrSize){
         fclose(fileOut /*_Descriptor*/);
         return RETURN_ERROR_FILECREATE;
     }
+
+    fputs("===TASK1===\n\n", fileOut);
     
     for (size_t index = 0; index < arrSize; index++){
         char *strOut;
         //sprintf(strOut, "%s\n", arrLines[index].line);
         if (fprintf(fileOut, "%s\n", arrLines[index].line) <= 0){
             fclose(fileOut /*_Descriptor*/);
-            return RETURN_ERROR_FILEWRITE;
+            return RETURN_ERROR_FILEWRITE_TASK1;
         }
     }
+
+    fclose(fileOut /*_Descriptor*/);
+    return RETURN_SUCCESS;
+}
+
+ErrSuc OpenOutFileTask2(Line *arrLines, size_t arrSize){
+    assert(arrLines != NULL);
+
+    //printf("OpenOutFile\n");
+
+
+    FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+
+    if (fileOut /*_Descriptor*/ == NULL){
+        fclose(fileOut /*_Descriptor*/);
+        return RETURN_ERROR_FILEADD_TASK2;
+    }
+
+    fputs("\n===TASK2===\n\n", fileOut);
+
+    for (size_t index = 0; index < arrSize; index++){
+        char *strOut;
+        //sprintf(strOut, "%s\n", arrLines[index].line);
+        if (fprintf(fileOut, "%s\n", arrLines[index].line) <= 0){
+            fclose(fileOut /*_Descriptor*/);
+            return RETURN_ERROR_FILEWRITE_TASK2;
+        }
+    }
+    fclose(fileOut /*_Descriptor*/);
+    return RETURN_SUCCESS;
+}
+
+ErrSuc OpenOutFileTask3(char *buffer, size_t bufSize){
+    assert(buffer != NULL);
+
+    FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+
+    if (fileOut /*_Descriptor*/ == NULL){
+        fclose(fileOut /*_Descriptor*/);
+        return RETURN_ERROR_FILEADD_TASK3;
+    }
+
+    RunThroughBufferBack(buffer, bufSize);
+
+    fputs("\n\n===TASK3===\n\n", fileOut);
+
+    fwrite(buffer, sizeof(char), bufSize, fileOut);
+
     fclose(fileOut /*_Descriptor*/);
     return RETURN_SUCCESS;
 }
@@ -243,6 +334,15 @@ size_t RunThroughBuffer(char *buffer, size_t bufSize){
         }
     }
     return endlCount;
+}
+
+void RunThroughBufferBack(char *buffer, size_t bufSize){
+
+    for (size_t index = 0; index < bufSize; index++){
+        if (buffer[index] == '\0'){
+            buffer[index] = '\n';
+        }
+    }
 }
 
 
