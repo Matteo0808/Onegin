@@ -28,7 +28,9 @@ enum ErrSuc{
     RETURN_ERROR_FSTAT = 3,
     RETURN_ERROR_FILEREAD = 4,
     RETURN_ERROR_FILECREATE = 5,
-    RETURN_ERROR_FILEWRITE = 6
+    RETURN_ERROR_FILEWRITE = 6,
+    RETURN_ERROR_TOO_LARGE_FILE_SIZE = 7,
+    RETURN_ERROR_MEMORY_ALLOCATION = 8
 };
 
 
@@ -56,45 +58,16 @@ int main(){
     ///@note completed
 
     //TODO: qsort() standart - my qsort ne workaet
+    ///@note completed
 
     //TODO: before write runtroughtbuffer \0 -> \n
 
     //TODO: func args in one struct
 
     //TODO: errors
+    ///@note completed
 
     //TODO: sprintf() вместо write / File* вместо descr, ask ded
-
-
-    // const char *str[4] = {"qweqweqwe1", "qweqweqwe12", "1", "qweeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee1"};
-    // size_t arrElemSize1 = sizeof(str[0]);
-    // size_t arrSize1 = sizeof(str) / arrElemSize1;
-
-    // printf("gay\n");
-
-    // QuickSort(str, arrElemSize1, 0, arrSize1 - 1, CompareStrOneginAscend);
-
-    // printf("%s\n", str[0]);
-    // printf("%s\n", str[1]);
-    // printf("%s\n", str[2]);
-    // printf("%s\n", str[3]);
-    
-
-    // return 0;
-
-    // const char *str[] = {"strstrstrstrstsrtrstrstsr", "str"};
-
-    // QuickSort(str, sizeof(const char *), 0, 1, CompareStrOneginAscend);
-
-    // printf("%s\n", str[0]);
-    // printf("%s\n", str[1]);
-    
-
-
-    // return 0;
-
-
-
 
     // TODO: fix naming
     ///@note compleeted
@@ -107,6 +80,9 @@ int main(){
             return RETURN_ERROR;
         case(RETURN_ERROR_FSTAT):
             printf("Error in input file opening in fuction fstat()\n");
+            return RETURN_ERROR;
+        case(RETURN_ERROR_TOO_LARGE_FILE_SIZE):
+            printf("Input file is too large\n");
             return RETURN_ERROR;
         default:
             break;
@@ -125,6 +101,9 @@ int main(){
     switch (ReadInFile(programInfo.fileInDescriptor, &programInfo.buffer, programInfo.fileSize)){
         case(RETURN_ERROR_FILEREAD):
             printf("Error in input file reading in fuction read()\n");
+            return RETURN_ERROR;
+        case(RETURN_ERROR_MEMORY_ALLOCATION):
+            printf("Error in memory allocation\n");
             return RETURN_ERROR;
         default:
             break;
@@ -157,27 +136,24 @@ int main(){
     // size_t arrElemSize = sizeof(arrLines[0]);
     // size_t linesLen[arrSize] = {};
 
-    printf("debug3\n");
+    //printf("debug3\n");
 
     
 
     ///@note fragmentation buffer to lines
     BufferToLinesFragmentation(programInfo.buffer, programInfo.arrLines, programInfo.fileSize, programInfo.arrSize);
 
-    
-
-    printf("debug4\n");
+    //printf("debug4\n");
 
     
-    //GetLenghts(programInfo.arrLines, programInfo.arrSize);
+    
+    //printf("debug5\n");
 
-    printf("debug5\n");
+    QuickSort(programInfo.arrLines, sizeof(Line), 0, programInfo.arrSize - 1, CompareStrOneginDescend);
 
-    //QuickSort(programInfo.arrLines, sizeof(const char *), 0, programInfo.arrSize - 1, CompareStrOneginAscend);
+    //qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginDescend);
 
-    qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginAscend);
-
-    printf("hui2\n");
+    //printf("hui2\n");
 
     switch (OpenOutFile(programInfo.arrLines, programInfo.arrSize)){
         case(RETURN_ERROR_FILECREATE):
@@ -209,20 +185,20 @@ ErrSuc OpenInFile(const char *fileName, int *fileInDescriptor, size_t* fileSize)
     if (fstat(*fileInDescriptor, &fileStat) == -1) {return RETURN_ERROR_FSTAT;}
 
     *fileSize = fileStat.st_size;
-    assert(*fileSize < 4294967296ULL /*1<<32*/);
+    if (*fileSize >= 4294967296ULL /*1<<32*/) {return RETURN_ERROR_TOO_LARGE_FILE_SIZE;};
+
     return RETURN_SUCCESS;
 }
 
 ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize){
 
     char *bufferBeta = (char *)calloc(fileSize + 2, sizeof(char));
-    assert(bufferBeta != NULL);
+    if (bufferBeta == NULL) {return RETURN_ERROR_MEMORY_ALLOCATION;};
 
     //printf("bufBeta = %p\n", bufferBeta);
 
     *buffer = bufferBeta + 1;
-    assert(*buffer != NULL);
-
+    
     //printf("buf = %p\n", *buffer);
 
     if (read(fileInDescriptor, *buffer, fileSize) <= 0){
@@ -237,20 +213,25 @@ ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize){
 
 ErrSuc OpenOutFile(Line *arrLines, size_t arrSize){
     assert(arrLines != NULL);
+
     printf("OpenOutFile\n");
-    int fileOut_Descriptor = open("onegin_out.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    if (fileOut_Descriptor == -1){
-        close(fileOut_Descriptor);
+
+
+    FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    if (fileOut /*_Descriptor*/ == NULL){
+        fclose(fileOut /*_Descriptor*/);
         return RETURN_ERROR_FILECREATE;
     }
     
     for (size_t index = 0; index < arrSize; index++){
-        if (write(fileOut_Descriptor, arrLines[index].line, arrLines[index].len) <= 0){
-            close(fileOut_Descriptor);
+        char *strOut;
+        //sprintf(strOut, "%s\n", arrLines[index].line);
+        if (fprintf(fileOut, "%s\n", arrLines[index].line) <= 0){
+            fclose(fileOut /*_Descriptor*/);
             return RETURN_ERROR_FILEWRITE;
         }
     }
-    close(fileOut_Descriptor);
+    fclose(fileOut /*_Descriptor*/);
     return RETURN_SUCCESS;
 }
 
@@ -273,13 +254,15 @@ size_t RunThroughBuffer(char *buffer, size_t bufSize){
     return endlCount;
 }
 
+
+
 void BufferToLinesFragmentation(char *buffer, Line *arrLines, size_t bufSize, size_t arrSize){
     assert(buffer != NULL);
     assert(arrLines != NULL);
 
-    printf("buffer = [%s]\n", buffer);
-    printf("arrLines ptr = %p\n", arrLines);
-    printf("bufSize = %llu\n", bufSize);
+    // printf("buffer = [%s]\n", buffer);
+    // printf("arrLines ptr = %p\n", arrLines);
+    // printf("bufSize = %llu\n", bufSize);
 
     int linesIndex = 0;
 
@@ -301,7 +284,7 @@ void BufferToLinesFragmentation(char *buffer, Line *arrLines, size_t bufSize, si
             //printf("%d\n\n", linesIndex);
         }
     }
-    printf("hey\n");
+    //printf("hey\n");
     GetLenghts(arrLines, arrSize);
 
 }

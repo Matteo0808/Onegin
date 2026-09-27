@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define MAXSIZE 16384
+#define MAXSIZE 1<<16
 
 enum dataType{
     INT,
