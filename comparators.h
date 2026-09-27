@@ -158,33 +158,48 @@ int CompareStrOneginDescend(const void *elem1, const void *elem2){
     const char *str2 =  ((Line *)elem2)->line;
     ssize_t len2 = ((Line *)elem2)->len;
 
+    //printf("start: len1 =  %d\tlen2 = %d\n", len1, len2);
+
     assert(str1 != NULL);
     assert(str2 != NULL);
 
-    while (!isalpha((unsigned char)*(str1 + (len1 - 1)))) {
+    while (!isalpha(*(str1 + (len1 - 1)))) {
         len1--;
+        //printf("len1 = %d\t", len1);;
         if(len1 == 0){
+            //printf("hui1\n\n\n");
             return 1;
         }
     }
-    while (!isalpha((unsigned char)*(str2 + (len2 - 1)))){
+    //printf("\ndone1\n");
+    while (!isalpha(*(str2 + (len2 - 1)))){
         len2--;
+        //printf("len2 = %d\t", len2);
         if(len2 == 0){
+            //printf("hui2\n\n\n");
             return -1;
         }
     }
+    //printf("\ndone2\n");
 
     while (len1 >= 0 && len2 >= 0){
 
         int int_c1 = tolower((unsigned char)*(str1 + (len1 - 1)));
         int int_c2 = tolower((unsigned char)*(str2 + (len2 - 1)));
         if (int_c1 != int_c2) {
-            return int_c2 - int_c1;
+            // printf("\n\n\n\n\n");
+            // printf("ret = %d\n", int_c2 - int_c1);
+            return int_c1 - int_c2;
         }
         else {
             len1--; len2--;
+            // printf("len1 = %d\t", len1);
+            // printf("\n");
+            // printf("len2 = %d\t", len2);
+            // printf("\n");
         }
     }
+    //printf("\n\n\n\n\n");
     return 0;
 }
 

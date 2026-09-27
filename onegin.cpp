@@ -21,6 +21,9 @@ struct Info{
     Line* arrLines;
 };
 
+
+
+
 enum ErrSuc{
     RETURN_SUCCESS = 0,
     RETURN_ERROR = 1,
@@ -37,11 +40,14 @@ enum ErrSuc{
 //TODO - struct!!!!!!!!!!!!!!! 
 ///@note completed
 
-//TODO - reverse sort, virginity text output, argc/argv
+//TODO - reverse sort
+//TODO - virginity text output
+//TODO - argc/argv
 
 ErrSuc OpenInFile(const char *fileName, int *fileInDescriptor, size_t* fileSize);
 ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize);
-ErrSuc OpenOutFile(Line *arrLines, size_t arrSize);
+ErrSuc OpenOutFileTask1(Line *arrLines, size_t arrSize);
+ErrSuc OpenOutFileTask2(Line *arrLines, size_t arrSize);
 void GetLenghts(Line *arrLines, size_t arrSize);
 void BufferToLinesFragmentation(char *buffer, Line *arrLines, size_t bufSize, size_t arrSize);
 size_t RunThroughBuffer(char *buffer, size_t bufSize);
@@ -57,10 +63,11 @@ int main(){
     //TODO: isolate comparator - WORKING!!!
     ///@note completed
 
-    //TODO: qsort() standart - my qsort ne workaet
+    //TODO: qsort() standart - my qsort ne workaet - vse, teper' workaet
     ///@note completed
 
-    //TODO: before write runtroughtbuffer \0 -> \n
+    //TODO: before write runtroughtbuffer \0 -> \n - found more optimal solution
+    ///@note completed
 
     //TODO: func args in one struct
 
@@ -68,11 +75,14 @@ int main(){
     ///@note completed
 
     //TODO: sprintf() вместо write / File* вместо descr, ask ded
+    ///@note completed
 
     // TODO: fix naming
     ///@note compleeted
 
     Info programInfo = {}; 
+
+    //printf("debug0\n");
 
     switch (OpenInFile("Onegin.txt", &(programInfo.fileInDescriptor), &(programInfo.fileSize))){
         case(RETURN_ERROR_FILEOPEN):
@@ -88,15 +98,10 @@ int main(){
             break;
     }    
     
-    
-    // bufferBeta[0] = '\0';
-    //bufferBeta[fileSize + 1] = '\n';
-
     // TODO: Buffer -> buffer
     ///@note completed
 
-    // char *buffer = bufferBeta + 1;
-    // assert(buffer != NULL);
+    //printf("debug1\n");
 
     switch (ReadInFile(programInfo.fileInDescriptor, &programInfo.buffer, programInfo.fileSize)){
         case(RETURN_ERROR_FILEREAD):
@@ -109,53 +114,38 @@ int main(){
             break;
     }
 
-    //printf("buf in main() = %p\n", programInfo.buffer);
-
     ///@note writing buffer before sorting
-    int fileOut_unsorted_Descriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    write(fileOut_unsorted_Descriptor, programInfo.buffer, programInfo.fileSize);
+    int fileOutUnsortedDescriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    write(fileOutUnsortedDescriptor, programInfo.buffer, programInfo.fileSize);
 
+    //printf("debug2\n");
 
     ///@note changing '\r' and '\n' to '\0' and number of lines calculating
     programInfo.arrSize = RunThroughBuffer(programInfo.buffer, programInfo.fileSize);
 
-
     ///@note writing buffer in one line
-    int fileOut_in_one_line_Descriptor = open("onegin_out_in_one_line.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    write(fileOut_in_one_line_Descriptor, programInfo.buffer, programInfo.fileSize);
-
-    // return 0;
+    int fileOutInOneLineDescriptor = open("onegin_out_in_one_line.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+    write(fileOutInOneLineDescriptor, programInfo.buffer, programInfo.fileSize);
 
     // TODO: VLA - variable length array -- полное говно (budet crash), сделать calloc
     ///@note completed
     
-
     programInfo.arrLines = (Line *)calloc(programInfo.arrSize, sizeof(Line));
-    
-    // const char *arrLines[arrSize] = {};
-    // size_t arrElemSize = sizeof(arrLines[0]);
-    // size_t linesLen[arrSize] = {};
 
     //printf("debug3\n");
-
-    
 
     ///@note fragmentation buffer to lines
     BufferToLinesFragmentation(programInfo.buffer, programInfo.arrLines, programInfo.fileSize, programInfo.arrSize);
 
     //printf("debug4\n");
 
-    
+    QuickSort(programInfo.arrLines, sizeof(Line), 0, programInfo.arrSize - 1, CompareStrOneginAscend);
     
     //printf("debug5\n");
-
-    QuickSort(programInfo.arrLines, sizeof(Line), 0, programInfo.arrSize - 1, CompareStrOneginDescend);
-
+    
     //qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginDescend);
 
-    //printf("hui2\n");
-
-    switch (OpenOutFile(programInfo.arrLines, programInfo.arrSize)){
+    switch (OpenOutFile(programInfo.arrLines, programInfo.arrSize, TASK1)){
         case(RETURN_ERROR_FILECREATE):
             printf("Error in input file creating or opening in fuction open()\n");
             return RETURN_ERROR;
@@ -165,6 +155,10 @@ int main(){
         default:
             break;
     }
+
+    qsort(programInfo.arrLines, programInfo.arrSize, sizeof(Line), CompareStrOneginDescend);
+        
+    //printf("debug6\n");
     
     ProgramDestroy(&programInfo, programInfo.buffer, programInfo.arrLines);
 }
@@ -176,16 +170,13 @@ ErrSuc OpenInFile(const char *fileName, int *fileInDescriptor, size_t* fileSize)
     
     *fileInDescriptor = open(fileName, O_RDONLY);
     if (*fileInDescriptor == -1) {return RETURN_ERROR_FILEOPEN;}
-    
-    // *fileIn = fdopen(*fileInDescriptor, "r");
-    // if(*fileIn == NULL) {return RETURN_ERROR2;}
 
     struct stat fileStat = {};
     // TODO: if style fix с пробелом везде сделай
     if (fstat(*fileInDescriptor, &fileStat) == -1) {return RETURN_ERROR_FSTAT;}
 
     *fileSize = fileStat.st_size;
-    if (*fileSize >= 4294967296ULL /*1<<32*/) {return RETURN_ERROR_TOO_LARGE_FILE_SIZE;};
+    if (*fileSize >= (size_t)1<<32) {return RETURN_ERROR_TOO_LARGE_FILE_SIZE;};
 
     return RETURN_SUCCESS;
 }
@@ -214,7 +205,7 @@ ErrSuc ReadInFile(int fileInDescriptor, char **buffer, size_t fileSize){
 ErrSuc OpenOutFile(Line *arrLines, size_t arrSize){
     assert(arrLines != NULL);
 
-    printf("OpenOutFile\n");
+    //printf("OpenOutFile\n");
 
 
     FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
@@ -302,10 +293,11 @@ void GetLenghts(Line *arrLines, size_t arrSize){
                 arrLines[index].len = strlen(arrLines[index].line);
             }
             else{
-                arrLines[index].len = arrLines[index].line - arrLines[index - 1].line;
-                //TODO
+                arrLines[index].len = arrLines[index + 1].line - arrLines[index].line - 1;
+                //TODO change strlen to ptr + 1 - ptr
                 ///@note completed
             }
+            //printf("len = %d\n", arrLines[index].len);
         }
     }
 }
