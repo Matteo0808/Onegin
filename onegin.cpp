@@ -6,7 +6,17 @@
 #include <errno.h>
 #include <assert.h>
 
+#define POISON -1
+#define DEBUG_MODE
+
+#ifdef DEBUG_MODE
+#define DEBUG(...) __VA_ARGS__
+#else
+#define DEBUG(...)
+#endif
+
 enum ErrSuc{
+    RETURN_POISON = -1,
     RETURN_SUCCESS = 0,
     RETURN_ERROR = 1,
     RETURN_ERROR_FILEOPEN = 2,
@@ -27,7 +37,6 @@ struct Line{
     size_t len;
 };
 
-#include "QuickSort.cpp"
 
 struct Info{
     int fileInDescriptor;
@@ -42,11 +51,23 @@ struct Info{
     ErrSuc error;
 };
 
+#include "QuickSort.cpp"
+
 const char *fileInName = "onegin.txt";
 
+ErrSuc OpenInFile(const char *fileName, Info *programInfo);
+ErrSuc ReadInFile(Info *programInfo);
+ErrSuc OpenOutFileTask1(Info *programInfo);
+ErrSuc OpenOutFileTask2(Info *programInfo);
+ErrSuc OpenOutFileTask3(Info *programInfo);
 
+void PrintfError(ErrSuc error);
 
+void RunThroughBuffer(Info *programInfo);
+void RunThroughBufferBack(Info *programInfo);
+void BufferToLinesFragmentation(Info *programInfo);
 
+void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int fileOutInOneLineDescriptor));
 
 //TODO - struct!!!!!!!!!!!!!!! 
 ///@note completed
@@ -96,37 +117,27 @@ const char *fileInName = "onegin.txt";
 //TODO - clear project
 ///@note completed
 
+///TODO - destroy program func(), add poison value
+///@note completed
+
 //TODO - argc/argv - in progress
 
 //TODO - README - in progress
 
-ErrSuc OpenInFile(const char *fileName, Info *programInfo);
-ErrSuc ReadInFile(Info *programInfo);
-ErrSuc OpenOutFileTask1(Info *programInfo);
-ErrSuc OpenOutFileTask2(Info *programInfo);
-ErrSuc OpenOutFileTask3(Info *programInfo);
-
-void PrintfError(ErrSuc error);
-
-void RunThroughBuffer(Info *programInfo);
-void RunThroughBufferBack(Info *programInfo);
-void BufferToLinesFragmentation(Info *programInfo);
-
-void ProgramDestroy(Info *programInfo);
 
 int main(){
     
     Info env = {}; 
 
-    //printf("debug0\n");
+    DEBUG(printf("debug0\n");)
 
     env.error = OpenInFile(fileInName, &env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
-    }  
-    
-    //printf("debug1\n");
+    }
+
+    DEBUG(printf("debug1\n");)
 
     env.error = ReadInFile(&env);
     if (env.error) {
@@ -134,21 +145,20 @@ int main(){
         return RETURN_ERROR;
     }
 
-    ///@note debug
-    int fileOutUnsortedDescriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    write(fileOutUnsortedDescriptor, env.buffer, env.bufSize);
+    DEBUG(int fileOutUnsortedDescriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+          write(fileOutUnsortedDescriptor, env.buffer, env.bufSize);)
 
     RunThroughBuffer(&env);
 
-    //printf("debug2\n");
+    DEBUG(printf("debug2\n");)
 
-    ///@note debug
-    int fileOutInOneLineDescriptor = open("onegin_out_in_one_line.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
-    write(fileOutInOneLineDescriptor, env.buffer, env.bufSize);
+    
+    DEBUG(int fileOutInOneLineDescriptor = open("onegin_out_in_one_line.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
+          write(fileOutInOneLineDescriptor, env.buffer, env.bufSize);)
 
     BufferToLinesFragmentation(&env);
 
-    //printf("debug3\n");
+    DEBUG(printf("debug3\n");)
     
     env.error = OpenOutFileTask1(&env);
     if (env.error) {
@@ -156,7 +166,7 @@ int main(){
         return RETURN_ERROR;
     }
 
-    //printf("debug4\n");
+    DEBUG(printf("debug4\n");)
 
     env.error = OpenOutFileTask2(&env);
     if (env.error) {
@@ -164,7 +174,7 @@ int main(){
         return RETURN_ERROR;
     }
 
-    //printf("degug5\n");
+    DEBUG(printf("degug5\n");)
 
     env.error = OpenOutFileTask3(&env);
     if (env.error) {
@@ -172,11 +182,14 @@ int main(){
         return RETURN_ERROR;
     }
     
-    ProgramDestroy(&env);
+    ProgramDestroy(&env DEBUG(, fileOutInOneLineDescriptor, fileOutUnsortedDescriptor));
 }
 
 void PrintfError(ErrSuc error){
     switch (error){
+        case (RETURN_POISON):
+            printf("Poison value, the struct has been destroyed\n");
+            break;
         case (RETURN_ERROR_FILEOPEN):
             printf("Error in input file opening in fuction open()\n");
             break;
@@ -405,10 +418,16 @@ void BufferToLinesFragmentation(Info *programInfo){
 
 }
 
-void ProgramDestroy(Info *programInfo){
+void ProgramDestroy(Info *programInfo DEBUG(, int fileOutInOneLineDescriptor, int fileOutUnsortedDescriptor)){
+    close(fileOutInOneLineDescriptor);
+    close(fileOutUnsortedDescriptor);
+
     free(programInfo->buffer - 1);
     free(programInfo->arrLines);
-    programInfo->arrSize = 0;
-    programInfo->fileInDescriptor = -1;
-    programInfo->bufSize = -1;
+
+    programInfo->arrSize = POISON;
+    programInfo->fileInDescriptor = POISON;
+    programInfo->bufSize = POISON;
+    programInfo->error = RETURN_POISON;
+    programInfo->fileOut = NULL;
 }
