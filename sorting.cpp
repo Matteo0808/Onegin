@@ -33,6 +33,15 @@ enum ErrSuc{
     RETURN_ERROR_CONSOLE_INPUT = 13,
 };
 
+enum OutputMode{
+    MODE_NONE = 0,
+    MODE_SORT_UNSORTED = 1,
+    MODE_SORT_BEGINNING = 2,
+    MODE_SORT_ENDING = 3,
+    MODE_SORT_ALL = 4,
+    MODE_SORT_ONLY = 5
+};
+
 struct Line{
     char *line;
     size_t len;
@@ -50,14 +59,18 @@ struct Info{
     size_t arrSize;
 \
     ErrSuc error;
+    OutputMode mode;
 };
 
 #include "QuickSort.cpp"
 
 const char *fileInNameDefault = "onegin.txt";
 
+void CheckArguments(int argc, char *argv[], const char *fileInNameDefault, Info *programInfo);
+
 ErrSuc OpenInFile(const char *fileName, Info *programInfo);
 ErrSuc ReadInFile(Info *programInfo);
+ErrSuc BufferToLinesFragmentation(Info *programInfo);
 ErrSuc SortinByBeginnings(Info *programInfo);
 ErrSuc SortingByEnds(Info *programInfo);
 ErrSuc SortingUnsorting(Info *programInfo);
@@ -66,7 +79,6 @@ void PrintfError(ErrSuc error);
 
 void RunThroughBuffer(Info *programInfo);
 void RunThroughBufferBack(Info *programInfo);
-void BufferToLinesFragmentation(Info *programInfo);
 
 void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int fileOutInOneLineDescriptor));
 
@@ -125,8 +137,10 @@ void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int
 ///@note completed
 
 //TODO - argc/argv - in progress
+///@note completed
 
 //TODO - README - in progress
+///@note completed
 
 
 int main(int argc, char *argv[]){
@@ -134,16 +148,8 @@ int main(int argc, char *argv[]){
     Info env = {}; 
 
     DEBUG(printf("debug0\n");)
-    if(argc == 1){
-        env.error = OpenInFile(fileInNameDefault, &env);        
-    }
-    else if(argc == 2){
-        env.error = OpenInFile(argv[1], &env);
-    }
-    else{
-        env.error = RETURN_ERROR_CONSOLE_INPUT;
-    }
-
+    
+    CheckArguments(argc, argv, fileInNameDefault, &env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -172,29 +178,119 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("debug3\n");)
     
-    env.error = SortinByBeginnings(&env);
-    if (env.error) {
-        PrintfError(env.error);
-        return RETURN_ERROR;
+    if (env.mode == MODE_SORT_BEGINNING || env.mode == MODE_SORT_ALL || env.mode == MODE_SORT_ONLY){
+        env.error = SortinByBeginnings(&env);
+        if (env.error) {
+            PrintfError(env.error);
+            return RETURN_ERROR;
+        }
     }
 
     DEBUG(printf("debug4\n");)
 
-    env.error = SortingByEnds(&env);
-    if (env.error) {
-        PrintfError(env.error);
-        return RETURN_ERROR;
-    }
-
-    DEBUG(printf("degug5\n");)
-
-    env.error = SortingUnsorting(&env);
-    if (env.error) {
-        PrintfError(env.error);
-        return RETURN_ERROR;
+    if (env.mode == MODE_SORT_ENDING || env.mode == MODE_SORT_ALL || env.mode == MODE_SORT_ONLY){
+        env.error = SortingByEnds(&env);
+        if (env.error) {
+            PrintfError(env.error);
+            return RETURN_ERROR;
+        }
     }
     
+    DEBUG(printf("degug5\n");)
+
+    if (env.mode == MODE_SORT_UNSORTED || env.mode == MODE_SORT_ALL){
+        env.error = SortingUnsorting(&env);
+        if (env.error) {
+            PrintfError(env.error);
+            return RETURN_ERROR;
+        }
+    }
     ProgramDestroy(&env DEBUG(, fileOutInOneLineDescriptor, fileOutUnsortedDescriptor));
+}
+
+void CheckArguments(int argc, char *argv[], const char *fileInNameDefault, Info *programInfo){
+    if(argc == 1){
+        programInfo->mode = MODE_SORT_BEGINNING;
+        programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+
+    }
+    else if(argc == 2){
+        if(strcmp(argv[1], "--unsorted") == 0 || strcmp(argv[1], "-u") == 0){
+            programInfo->mode = MODE_SORT_UNSORTED;
+            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+            return;
+        }
+        if(strcmp(argv[1], "--beginning") == 0 || strcmp(argv[1], "-b") == 0){
+            programInfo->mode = MODE_SORT_BEGINNING;
+            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+            return;
+        }
+        if(strcmp(argv[1], "--ending") == 0 || strcmp(argv[1], "-e") == 0){
+            programInfo->mode = MODE_SORT_ENDING;
+            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+            return;
+        }
+        if(strcmp(argv[1], "--all") == 0 || strcmp(argv[1], "-a") == 0){
+            programInfo->mode = MODE_SORT_ALL;
+            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+            return;
+        }
+        if(strcmp(argv[1], "--sortsonly") == 0 || strcmp(argv[1], "-s") == 0){
+            programInfo->mode = MODE_SORT_ONLY;
+            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
+            return;
+        }
+        if(!OpenInFile(argv[1], programInfo)){
+            programInfo->mode = MODE_SORT_BEGINNING;
+            programInfo->error = RETURN_SUCCESS;
+            return;
+        }
+        else{
+            programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
+            return;
+        }
+    }
+    else if(argc == 3){
+        if(!OpenInFile(argv[1], programInfo)){
+            if(strcmp(argv[2], "--unsorted") == 0 || strcmp(argv[2], "-u") == 0){
+                programInfo->mode = MODE_SORT_UNSORTED;
+                programInfo->error = OpenInFile(argv[1], programInfo);
+                return;
+            }
+            if(strcmp(argv[2], "--beginning") == 0 || strcmp(argv[2], "-b") == 0){
+                programInfo->mode = MODE_SORT_BEGINNING;
+                programInfo->error = OpenInFile(argv[1], programInfo);
+                return;
+            }
+            if(strcmp(argv[2], "--ending") == 0 || strcmp(argv[2], "-e") == 0){
+                programInfo->mode = MODE_SORT_ENDING;
+                programInfo->error = OpenInFile(argv[1], programInfo);
+                return;
+            }
+            if(strcmp(argv[2], "--all") == 0 || strcmp(argv[2], "-a") == 0){
+                programInfo->mode = MODE_SORT_ALL;
+                programInfo->error = OpenInFile(argv[1], programInfo);
+                return;
+            }
+            if(strcmp(argv[2], "--sortsonly") == 0 || strcmp(argv[2], "-s") == 0){
+                programInfo->mode = MODE_SORT_ONLY;
+                programInfo->error = OpenInFile(argv[1], programInfo);
+                return;
+            }
+            else{
+                programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
+                return;
+            }
+        }
+        else{
+            programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
+            return;
+        }
+    }
+    else{
+        programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
+        return;
+    }
 }
 
 void PrintfError(ErrSuc error){
@@ -293,7 +389,7 @@ ErrSuc SortinByBeginnings(Info *programInfo){
 
     QuickSort(programInfo->arrLines, sizeof(Line), 0, programInfo->arrSize - 1, CompareStrOneginAscend);
 
-    programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
 
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
@@ -324,11 +420,13 @@ ErrSuc SortingByEnds(Info *programInfo){
 
     qsort(programInfo->arrLines, programInfo->arrSize, sizeof(Line), CompareStrOneginDescend);
 
-    //FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    if(programInfo->fileOut == NULL){
+        programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    }
 
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
-
+        printf("hui\n");
         return RETURN_ERROR_FILEADD_TASK2;
     }
 
@@ -352,7 +450,9 @@ ErrSuc SortingUnsorting(Info *programInfo){
     assert(programInfo != NULL);
     assert(programInfo->buffer != NULL);
 
-    //FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    if(programInfo->fileOut == NULL){
+        programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    }
 
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
@@ -361,7 +461,7 @@ ErrSuc SortingUnsorting(Info *programInfo){
 
     RunThroughBufferBack(programInfo);
 
-    fputs("\n\n===TASK3===\n\n", programInfo->fileOut);
+    fputs("===Unsorted===\n", programInfo->fileOut);
 
     fwrite(programInfo->buffer, sizeof(char), programInfo->bufSize, programInfo->fileOut);
 
@@ -372,6 +472,7 @@ ErrSuc SortingUnsorting(Info *programInfo){
 }
 
 void RunThroughBuffer(Info *programInfo){
+    assert(programInfo != NULL);
 
     size_t endlCount = 0;
 
@@ -407,7 +508,7 @@ void RunThroughBufferBack(Info *programInfo){
 
 
 
-void BufferToLinesFragmentation(Info *programInfo){
+ErrSuc BufferToLinesFragmentation(Info *programInfo){
     assert(programInfo->buffer != NULL);
 
     DEBUG(printf("buffer = [%s]\n", programInfo->buffer);
@@ -416,6 +517,10 @@ void BufferToLinesFragmentation(Info *programInfo){
          )
 
     programInfo->arrLines = (Line *)calloc(programInfo->arrSize, sizeof(Line));
+    
+    if(programInfo->arrLines == NULL){
+        return RETURN_ERROR_MEMORY_ALLOCATION;
+    }
 
     int linesIndex = 0;
 
@@ -450,7 +555,7 @@ void BufferToLinesFragmentation(Info *programInfo){
             }
         }
     }
-
+    return RETURN_SUCCESS;
 }
 
 void ProgramDestroy(Info *programInfo DEBUG(, int fileOutInOneLineDescriptor, int fileOutUnsortedDescriptor)){
