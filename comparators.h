@@ -47,8 +47,8 @@ int CompareStrAscend(const void* elem1, const void* elem2){
     assert(elem1 != 0);
     assert(elem2 != 0);
 
-    const char **str1 = (const char **)elem1;
-    const char **str2 = (const char **)elem2;
+    const char * const *str1 = (const char * const*)elem1;
+    const char * const *str2 = (const char * const*)elem2;
     int compare = strcmp(*str1, *str2);
     if(compare > 0) {return 1;}
     if(compare < 0) {return -1;}

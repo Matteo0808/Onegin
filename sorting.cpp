@@ -58,9 +58,9 @@ const char *fileInNameDefault = "onegin.txt";
 
 ErrSuc OpenInFile(const char *fileName, Info *programInfo);
 ErrSuc ReadInFile(Info *programInfo);
-ErrSuc OpenOutFileTask1(Info *programInfo);
-ErrSuc OpenOutFileTask2(Info *programInfo);
-ErrSuc OpenOutFileTask3(Info *programInfo);
+ErrSuc SortinByBeginnings(Info *programInfo);
+ErrSuc SortingByEnds(Info *programInfo);
+ErrSuc SortingUnsorting(Info *programInfo);
 
 void PrintfError(ErrSuc error);
 
@@ -110,6 +110,9 @@ void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int
 ///@note completed
 
 // TODO: Buffer -> buffer
+///@note completed
+
+//TODO change strlen to ptr + 1 - ptr
 ///@note completed
 
 //TODO: func args in one struct - in progress
@@ -168,7 +171,7 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("debug3\n");)
     
-    env.error = OpenOutFileTask1(&env);
+    env.error = SortinByBeginnings(&env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -176,7 +179,7 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("debug4\n");)
 
-    env.error = OpenOutFileTask2(&env);
+    env.error = SortingByEnds(&env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -184,7 +187,7 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("degug5\n");)
 
-    env.error = OpenOutFileTask3(&env);
+    env.error = SortingUnsorting(&env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -232,12 +235,17 @@ void PrintfError(ErrSuc error){
             printf("Error in input file writing in fuction fwrite() in task 3\n");
             break;
         case (RETURN_ERROR_CONSOLE_INPUT):
-            printf("Error in console arguments\n");        
+            printf("Error in console arguments\n");   
+            break;
+        default:
+            printf("no errors:)");
+            break;
     }
 }
 
 ErrSuc OpenInFile(const char *fileName, Info *programInfo){
     assert(fileName != NULL);
+    assert(programInfo != NULL);
     assert(&(programInfo->bufSize) != 0);
     
     programInfo->fileInDescriptor = open(fileName, O_RDONLY);
@@ -253,57 +261,65 @@ ErrSuc OpenInFile(const char *fileName, Info *programInfo){
 }
 
 ErrSuc ReadInFile(Info *programInfo){
+    assert(programInfo != NULL);
 
     char *bufferBeta = (char *)calloc(programInfo->bufSize + 2, sizeof(char));
+
     if (bufferBeta == NULL) {return RETURN_ERROR_MEMORY_ALLOCATION;};
 
-    //printf("bufBeta = %p\n", bufferBeta);
+    DEBUG(printf("bufBeta = %p\n", bufferBeta);)
 
     programInfo->buffer = bufferBeta + 1;
     
-    //printf("buf = %p\n", *buffer);
+    DEBUG(printf("buf = %p\n", programInfo->buffer);)
 
     if (read(programInfo->fileInDescriptor, programInfo->buffer, programInfo->bufSize) <= 0){
         close(programInfo->fileInDescriptor);
+
         return RETURN_ERROR_FILEREAD;
     }
     
-
     close(programInfo->fileInDescriptor);
+
     return RETURN_SUCCESS;
 }
 
-ErrSuc OpenOutFileTask1(Info *programInfo){
+ErrSuc SortinByBeginnings(Info *programInfo){
+    assert(programInfo != NULL);
     assert(programInfo->arrLines != NULL);
 
-    //printf("OpenOutFile\n");
+    DEBUG(printf("OpenOutFile1\n");)
+
     QuickSort(programInfo->arrLines, sizeof(Line), 0, programInfo->arrSize - 1, CompareStrOneginAscend);
 
     programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
+
         return RETURN_ERROR_FILECREATE;
     }
 
-    fputs("===TASK1===\n\n", programInfo->fileOut);
+    fputs("===Sorting=By=Begginnig===\n", programInfo->fileOut);
     
     for (size_t index = 0; index < programInfo->arrSize; index++){
-        char *strOut;
-        //sprintf(strOut, "%s\n", arrLines[index].line);
         if (fprintf(programInfo->fileOut, "%s\n", programInfo->arrLines[index].line) <= 0){
             fclose(programInfo->fileOut /*_Descriptor*/);
+            
             return RETURN_ERROR_FILEWRITE_TASK1;
         }
     }
 
-    
+    fputs("\n", programInfo->fileOut);
+
     return RETURN_SUCCESS;
 }
 
-ErrSuc OpenOutFileTask2(Info *programInfo){
+ErrSuc SortingByEnds(Info *programInfo){
+    assert(programInfo != NULL);
     assert(programInfo->arrLines != NULL);
 
-    //printf("OpenOutFile\n");
+    DEBUG(printf("OpenOutFile1\n");)
 
     qsort(programInfo->arrLines, programInfo->arrSize, sizeof(Line), CompareStrOneginDescend);
 
@@ -311,24 +327,28 @@ ErrSuc OpenOutFileTask2(Info *programInfo){
 
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
+
         return RETURN_ERROR_FILEADD_TASK2;
     }
 
-    fputs("\n===TASK2===\n\n", programInfo->fileOut);
+    fputs("===Sorting=By=Ends===\n", programInfo->fileOut);
 
     for (size_t index = 0; index < programInfo->arrSize; index++){
-        char *strOut;
-        //sprintf(strOut, "%s\n", arrLines[index].line);
         if (fprintf(programInfo->fileOut, "%s\n", programInfo->arrLines[index].line) <= 0){
             fclose(programInfo->fileOut /*_Descriptor*/);
+            
             return RETURN_ERROR_FILEWRITE_TASK2;
         }
     }
+
+    fputs("\n", programInfo->fileOut);
+
     //fclose(fileOut /*_Descriptor*/);
     return RETURN_SUCCESS;
 }
 
-ErrSuc OpenOutFileTask3(Info *programInfo){
+ErrSuc SortingUnsorting(Info *programInfo){
+    assert(programInfo != NULL);
     assert(programInfo->buffer != NULL);
 
     //FILE *fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "a"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
@@ -344,21 +364,28 @@ ErrSuc OpenOutFileTask3(Info *programInfo){
 
     fwrite(programInfo->buffer, sizeof(char), programInfo->bufSize, programInfo->fileOut);
 
-    fclose(programInfo->fileOut /*_Descriptor*/);
+    fputs("\n", programInfo->fileOut);
+
+    //fclose(programInfo->fileOut /*_Descriptor*/);
     return RETURN_SUCCESS;
 }
 
 void RunThroughBuffer(Info *programInfo){
 
     size_t endlCount = 0;
+
     for (size_t index = 0; index < programInfo->bufSize; index++){
         if (programInfo->buffer[index] == '\r'){
+
             programInfo->buffer[index] = '\0';
         }
         if (programInfo->buffer[index] == '\n'){
+
             endlCount++;
             programInfo->buffer[index] = '\0';
+
             while((index + 1) < programInfo->bufSize && programInfo->buffer[index + 1] == '\n'){
+
                 programInfo->buffer[index + 1] = '\0';
                 index++;
             }
@@ -371,6 +398,7 @@ void RunThroughBufferBack(Info *programInfo){
 
     for (size_t index = 0; index < programInfo->bufSize; index++){
         if (programInfo->buffer[index] == '\0'){
+
             programInfo->buffer[index] = '\n';
         }
     }
@@ -381,15 +409,15 @@ void RunThroughBufferBack(Info *programInfo){
 void BufferToLinesFragmentation(Info *programInfo){
     assert(programInfo->buffer != NULL);
 
-    // printf("buffer = [%s]\n", buffer);
-    // printf("arrLines ptr = %p\n", arrLines);
-    // printf("bufSize = %llu\n", bufSize);
+    DEBUG(printf("buffer = [%s]\n", programInfo->buffer);
+          printf("arrLines ptr = %p\n", programInfo->arrLines);
+          printf("bufSize = %llu\n", programInfo->bufSize);
+         )
 
     programInfo->arrLines = (Line *)calloc(programInfo->arrSize, sizeof(Line));
 
     int linesIndex = 0;
 
-    //
     for (ssize_t index = -1; index < (ssize_t)(programInfo->bufSize - 1); index++){
         // printf("%d\n", index);
         // printf("%c\n", buffer[index]);
@@ -407,9 +435,9 @@ void BufferToLinesFragmentation(Info *programInfo){
             //printf("%d\n\n", linesIndex);
         }
     }
-    //printf("hey\n");
     for (size_t index = 0; index < programInfo->arrSize; index++){
         if (programInfo->arrLines[index].line == 0){
+
             programInfo->arrLines[index].len = 0;
         }
         else{
@@ -418,10 +446,7 @@ void BufferToLinesFragmentation(Info *programInfo){
             }
             else{
                 programInfo->arrLines[index].len = programInfo->arrLines[index + 1].line - programInfo->arrLines[index].line - 1;
-                //TODO change strlen to ptr + 1 - ptr
-                ///@note completed
             }
-            //printf("len = %d\n", arrLines[index].len);
         }
     }
 
@@ -430,6 +455,8 @@ void BufferToLinesFragmentation(Info *programInfo){
 void ProgramDestroy(Info *programInfo DEBUG(, int fileOutInOneLineDescriptor, int fileOutUnsortedDescriptor)){
     DEBUG(close(fileOutInOneLineDescriptor);)
     DEBUG(close(fileOutUnsortedDescriptor);)
+    
+    fclose(programInfo->fileOut);
 
     free(programInfo->buffer - 1);
     free(programInfo->arrLines);
