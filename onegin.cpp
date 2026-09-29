@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #define POISON -1
-#define DEBUG_MODE
+//#define DEBUG_MODE
 
 #ifdef DEBUG_MODE
 #define DEBUG(...) __VA_ARGS__
@@ -29,7 +29,8 @@ enum ErrSuc{
     RETURN_ERROR_FILEADD_TASK2 = 9,
     RETURN_ERROR_FILEWRITE_TASK2 = 10,
     RETURN_ERROR_FILEADD_TASK3 = 11,
-    RETURN_ERROR_FILEWRITE_TASK3 = 12
+    RETURN_ERROR_FILEWRITE_TASK3 = 12,
+    RETURN_ERROR_CONSOLE_INPUT = 13,
 };
 
 struct Line{
@@ -53,7 +54,7 @@ struct Info{
 
 #include "QuickSort.cpp"
 
-const char *fileInName = "onegin.txt";
+const char *fileInNameDefault = "onegin.txt";
 
 ErrSuc OpenInFile(const char *fileName, Info *programInfo);
 ErrSuc ReadInFile(Info *programInfo);
@@ -125,13 +126,20 @@ void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int
 //TODO - README - in progress
 
 
-int main(){
+int main(int argc, char *argv[]){
     
     Info env = {}; 
 
     DEBUG(printf("debug0\n");)
-
-    env.error = OpenInFile(fileInName, &env);
+    if(argc == 1){
+        env.error = OpenInFile(fileInNameDefault, &env);
+    }
+    else if(argc == 2){
+        env.error = OpenInFile(argv[1], &env);
+    }
+    else{
+        env.error = RETURN_ERROR_CONSOLE_INPUT;
+    }
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -223,7 +231,8 @@ void PrintfError(ErrSuc error){
         case (RETURN_ERROR_FILEWRITE_TASK3):
             printf("Error in input file writing in fuction fwrite() in task 3\n");
             break;
-        
+        case (RETURN_ERROR_CONSOLE_INPUT):
+            printf("Error in console arguments\n");        
     }
 }
 
@@ -270,7 +279,7 @@ ErrSuc OpenOutFileTask1(Info *programInfo){
     //printf("OpenOutFile\n");
     QuickSort(programInfo->arrLines, sizeof(Line), 0, programInfo->arrSize - 1, CompareStrOneginAscend);
 
-    programInfo->fileOut /*_Descriptor*/ = fopen("onegin_out.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
+    programInfo->fileOut /*_Descriptor*/ = fopen("output.txt", "w"/*O_CREAT | O_RDWR | O_TRUNC, 0666*/);
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
         return RETURN_ERROR_FILECREATE;
@@ -419,8 +428,8 @@ void BufferToLinesFragmentation(Info *programInfo){
 }
 
 void ProgramDestroy(Info *programInfo DEBUG(, int fileOutInOneLineDescriptor, int fileOutUnsortedDescriptor)){
-    close(fileOutInOneLineDescriptor);
-    close(fileOutUnsortedDescriptor);
+    DEBUG(close(fileOutInOneLineDescriptor);)
+    DEBUG(close(fileOutUnsortedDescriptor);)
 
     free(programInfo->buffer - 1);
     free(programInfo->arrLines);

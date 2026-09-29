@@ -6,14 +6,6 @@
 
 #define MAXSIZE 1<<16
 
-enum dataType{
-    INT,
-    DOUBLE,
-    CHAR,
-    STRING
-    //for
-};
-
 void printfArr(void* arr, size_t arrSize, size_t arrElemSize, const char* spezificator);
 // void printfArrDebug(void* arr, size_t arrSize, size_t arrElemSize,
 //                     void FormatFunc(const void *elem, char *buf, size_t bufSize));
