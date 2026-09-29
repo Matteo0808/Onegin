@@ -135,7 +135,7 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("debug0\n");)
     if(argc == 1){
-        env.error = OpenInFile(fileInNameDefault, &env);
+        env.error = OpenInFile(fileInNameDefault, &env);        
     }
     else if(argc == 2){
         env.error = OpenInFile(argv[1], &env);
@@ -143,6 +143,7 @@ int main(int argc, char *argv[]){
     else{
         env.error = RETURN_ERROR_CONSOLE_INPUT;
     }
+
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
