@@ -49,6 +49,7 @@ struct Line{
 
 
 struct Info{
+    const char *fileName;
     int fileInDescriptor;
     FILE *fileOut;
 \
@@ -66,19 +67,20 @@ struct Info{
 
 const char *fileInNameDefault = "onegin.txt";
 
-void CheckArguments(int argc, char *argv[], const char *fileInNameDefault, Info *programInfo);
+const char *CheckConsoleArguments(int argc, char *argv[], Info *programInfo);
+bool IsMode(char * consoleArg, Info *programInfo);
 
-ErrSuc OpenInFile(const char *fileName, Info *programInfo);
+ErrSuc OpenInFile(Info *programInfo);
 ErrSuc ReadInFile(Info *programInfo);
 ErrSuc BufferToLinesFragmentation(Info *programInfo);
-ErrSuc SortinByBeginnings(Info *programInfo);
-ErrSuc SortingByEnds(Info *programInfo);
-ErrSuc SortingUnsorting(Info *programInfo);
+ErrSuc SortingByBeginnings(Info *programInfo);
+ErrSuc SortingByEndings(Info *programInfo);
+ErrSuc OutputUnsortedText(Info *programInfo);
 
 void PrintfError(ErrSuc error);
 
-void RunThroughBuffer(Info *programInfo);
-void RunThroughBufferBack(Info *programInfo);
+void ChangeEndlsToNulls(Info *programInfo);
+void ChangeNullsToEndls(Info *programInfo);
 
 void ProgramDestroy(Info *programInfo DEBUG(, int fileOutUnsortedDescriptor, int fileOutInOneLineDescriptor));
 
@@ -149,7 +151,9 @@ int main(int argc, char *argv[]){
 
     DEBUG(printf("debug0\n");)
     
-    CheckArguments(argc, argv, fileInNameDefault, &env);
+    env.fileName = CheckConsoleArguments(argc, argv, &env);
+    
+    env.error = OpenInFile(&env);
     if (env.error) {
         PrintfError(env.error);
         return RETURN_ERROR;
@@ -166,7 +170,7 @@ int main(int argc, char *argv[]){
     DEBUG(int fileOutUnsortedDescriptor = open("onegin_out_unsorted.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
           write(fileOutUnsortedDescriptor, env.buffer, env.bufSize);)
 
-    RunThroughBuffer(&env);
+    ChangeEndlsToNulls(&env);
 
     DEBUG(printf("debug2\n");)
 
@@ -179,7 +183,7 @@ int main(int argc, char *argv[]){
     DEBUG(printf("debug3\n");)
     
     if (env.mode == MODE_SORT_BEGINNING || env.mode == MODE_SORT_ALL || env.mode == MODE_SORT_ONLY){
-        env.error = SortinByBeginnings(&env);
+        env.error = SortingByBeginnings(&env);
         if (env.error) {
             PrintfError(env.error);
             return RETURN_ERROR;
@@ -189,7 +193,7 @@ int main(int argc, char *argv[]){
     DEBUG(printf("debug4\n");)
 
     if (env.mode == MODE_SORT_ENDING || env.mode == MODE_SORT_ALL || env.mode == MODE_SORT_ONLY){
-        env.error = SortingByEnds(&env);
+        env.error = SortingByEndings(&env);
         if (env.error) {
             PrintfError(env.error);
             return RETURN_ERROR;
@@ -199,7 +203,7 @@ int main(int argc, char *argv[]){
     DEBUG(printf("degug5\n");)
 
     if (env.mode == MODE_SORT_UNSORTED || env.mode == MODE_SORT_ALL){
-        env.error = SortingUnsorting(&env);
+        env.error = OutputUnsortedText(&env);
         if (env.error) {
             PrintfError(env.error);
             return RETURN_ERROR;
@@ -208,88 +212,58 @@ int main(int argc, char *argv[]){
     ProgramDestroy(&env DEBUG(, fileOutInOneLineDescriptor, fileOutUnsortedDescriptor));
 }
 
-void CheckArguments(int argc, char *argv[], const char *fileInNameDefault, Info *programInfo){
+const char *CheckConsoleArguments(int argc, char *argv[], Info *programInfo){
     if(argc == 1){
         programInfo->mode = MODE_SORT_BEGINNING;
-        programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-
+        return fileInNameDefault;
     }
     else if(argc == 2){
-        if(strcmp(argv[1], "--unsorted") == 0 || strcmp(argv[1], "-u") == 0){
-            programInfo->mode = MODE_SORT_UNSORTED;
-            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-            return;
-        }
-        if(strcmp(argv[1], "--beginning") == 0 || strcmp(argv[1], "-b") == 0){
-            programInfo->mode = MODE_SORT_BEGINNING;
-            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-            return;
-        }
-        if(strcmp(argv[1], "--ending") == 0 || strcmp(argv[1], "-e") == 0){
-            programInfo->mode = MODE_SORT_ENDING;
-            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-            return;
-        }
-        if(strcmp(argv[1], "--all") == 0 || strcmp(argv[1], "-a") == 0){
-            programInfo->mode = MODE_SORT_ALL;
-            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-            return;
-        }
-        if(strcmp(argv[1], "--sortsonly") == 0 || strcmp(argv[1], "-s") == 0){
-            programInfo->mode = MODE_SORT_ONLY;
-            programInfo->error = OpenInFile(fileInNameDefault, programInfo);
-            return;
-        }
-        if(!OpenInFile(argv[1], programInfo)){
-            programInfo->mode = MODE_SORT_BEGINNING;
-            programInfo->error = RETURN_SUCCESS;
-            return;
+        if(IsMode(argv[1], programInfo)){
+            return fileInNameDefault;
         }
         else{
-            programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
-            return;
+            return argv[1];
         }
     }
     else if(argc == 3){
-        if(!OpenInFile(argv[1], programInfo)){
-            if(strcmp(argv[2], "--unsorted") == 0 || strcmp(argv[2], "-u") == 0){
-                programInfo->mode = MODE_SORT_UNSORTED;
-                programInfo->error = OpenInFile(argv[1], programInfo);
-                return;
-            }
-            if(strcmp(argv[2], "--beginning") == 0 || strcmp(argv[2], "-b") == 0){
-                programInfo->mode = MODE_SORT_BEGINNING;
-                programInfo->error = OpenInFile(argv[1], programInfo);
-                return;
-            }
-            if(strcmp(argv[2], "--ending") == 0 || strcmp(argv[2], "-e") == 0){
-                programInfo->mode = MODE_SORT_ENDING;
-                programInfo->error = OpenInFile(argv[1], programInfo);
-                return;
-            }
-            if(strcmp(argv[2], "--all") == 0 || strcmp(argv[2], "-a") == 0){
-                programInfo->mode = MODE_SORT_ALL;
-                programInfo->error = OpenInFile(argv[1], programInfo);
-                return;
-            }
-            if(strcmp(argv[2], "--sortsonly") == 0 || strcmp(argv[2], "-s") == 0){
-                programInfo->mode = MODE_SORT_ONLY;
-                programInfo->error = OpenInFile(argv[1], programInfo);
-                return;
-            }
-            else{
-                programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
-                return;
-            }
+        if((IsMode(argv[2], programInfo))){
+            return argv[1];
         }
         else{
-            programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
-            return;
+            PrintfError(RETURN_ERROR_CONSOLE_INPUT);
+            return NULL;
         }
     }
     else{
-        programInfo->error = RETURN_ERROR_CONSOLE_INPUT;
-        return;
+        PrintfError(RETURN_ERROR_CONSOLE_INPUT);
+        return NULL;
+    }
+}
+
+bool IsMode(char * consoleArg, Info *programInfo){
+    if(strcmp(consoleArg, "--unsorted") == 0 || strcmp(consoleArg, "-u") == 0){
+        programInfo->mode = MODE_SORT_UNSORTED;
+        return 1;
+    }
+    if(strcmp(consoleArg, "--beginning") == 0 || strcmp(consoleArg, "-b") == 0){
+        programInfo->mode = MODE_SORT_BEGINNING;
+        return 1;
+    }
+    if(strcmp(consoleArg, "--ending") == 0 || strcmp(consoleArg, "-e") == 0){
+        programInfo->mode = MODE_SORT_ENDING;
+        return 1;
+    }
+    if(strcmp(consoleArg, "--all") == 0 || strcmp(consoleArg, "-a") == 0){
+        programInfo->mode = MODE_SORT_ALL;
+        return 1;
+    }
+    if(strcmp(consoleArg, "--sortsonly") == 0 || strcmp(consoleArg, "-s") == 0){
+        programInfo->mode = MODE_SORT_ONLY;
+        return 1;
+    }
+    else{
+        programInfo->mode = MODE_SORT_UNSORTED;
+        return 0;
     }
 }
 
@@ -299,7 +273,7 @@ void PrintfError(ErrSuc error){
             printf("Poison value, the struct has been destroyed\n");
             break;
         case (RETURN_ERROR_FILEOPEN):
-            printf("Error in input file opening in fuction open()\n");
+            printf("Error in input file opening in fuction open(), maybe you should check console arguments\n");
             break;
         case (RETURN_ERROR_FSTAT):
             printf("Error in input file opening in fuction fstat()\n");
@@ -308,10 +282,10 @@ void PrintfError(ErrSuc error){
             printf("Error in input file reading in fuction read()\n");
             break;
         case (RETURN_ERROR_FILECREATE):
-            printf("Error in input file creating or opening in fuction fopen() in task 1\n");
+            printf("Error in input file creating or opening in fuction fopen() in sorting by beginning, maybe you should check console arguments\n");
             break;
         case (RETURN_ERROR_FILEWRITE_TASK1):
-            printf("Error in input file writing in fuction fprintf() in task 1\n");
+            printf("Error in input file writing in fuction fprintf() in sorting by beginning\n");
             break;
         case (RETURN_ERROR_TOO_LARGE_FILE_SIZE):
             printf("Input file is too large\n");
@@ -320,16 +294,16 @@ void PrintfError(ErrSuc error){
             printf("Error in memory allocation\n");
             break;
         case (RETURN_ERROR_FILEADD_TASK2):
-            printf("Error in input file opening in fuction fopen() in task 2\n");
+            printf("Error in input file opening in fuction fopen() in sorting by ending, maybe you should check console arguments\n");
             break;
         case (RETURN_ERROR_FILEWRITE_TASK2):
-            printf("Error in input file writing in fuction fprintf() in task 2\n");
+            printf("Error in input file writing in fuction fprintf() in sorting by ending\n");
             break;
         case (RETURN_ERROR_FILEADD_TASK3):
-            printf("Error in input file opening in fuction fopen() in task 3\n");
+            printf("Error in input file opening in fuction fopen() in outputting unsorted text, maybe you should check console arguments\n");
             break;
         case (RETURN_ERROR_FILEWRITE_TASK3):
-            printf("Error in input file writing in fuction fwrite() in task 3\n");
+            printf("Error in input file writing in fuction fwrite() outputting unsorted text\n");
             break;
         case (RETURN_ERROR_CONSOLE_INPUT):
             printf("Error in console arguments\n");   
@@ -340,12 +314,11 @@ void PrintfError(ErrSuc error){
     }
 }
 
-ErrSuc OpenInFile(const char *fileName, Info *programInfo){
-    assert(fileName != NULL);
+ErrSuc OpenInFile(Info *programInfo){
     assert(programInfo != NULL);
     assert(&(programInfo->bufSize) != 0);
     
-    programInfo->fileInDescriptor = open(fileName, O_RDONLY);
+    programInfo->fileInDescriptor = open(programInfo->fileName, O_RDONLY);
     if (programInfo->fileInDescriptor == -1) {return RETURN_ERROR_FILEOPEN;}
 
     struct stat fileStat = {};
@@ -381,7 +354,7 @@ ErrSuc ReadInFile(Info *programInfo){
     return RETURN_SUCCESS;
 }
 
-ErrSuc SortinByBeginnings(Info *programInfo){
+ErrSuc SortingByBeginnings(Info *programInfo){
     assert(programInfo != NULL);
     assert(programInfo->arrLines != NULL);
 
@@ -397,7 +370,7 @@ ErrSuc SortinByBeginnings(Info *programInfo){
         return RETURN_ERROR_FILECREATE;
     }
 
-    fputs("===Sorting=By=Begginnig===\n", programInfo->fileOut);
+    fputs("===Sorting=By=Beginnig===\n\n", programInfo->fileOut);
     
     for (size_t index = 0; index < programInfo->arrSize; index++){
         if (fprintf(programInfo->fileOut, "%s\n", programInfo->arrLines[index].line) <= 0){
@@ -412,7 +385,7 @@ ErrSuc SortinByBeginnings(Info *programInfo){
     return RETURN_SUCCESS;
 }
 
-ErrSuc SortingByEnds(Info *programInfo){
+ErrSuc SortingByEndings(Info *programInfo){
     assert(programInfo != NULL);
     assert(programInfo->arrLines != NULL);
 
@@ -426,11 +399,11 @@ ErrSuc SortingByEnds(Info *programInfo){
 
     if (programInfo->fileOut /*_Descriptor*/ == NULL){
         fclose(programInfo->fileOut /*_Descriptor*/);
-        printf("hui\n");
+        DEBUG(printf("hui\n");)
         return RETURN_ERROR_FILEADD_TASK2;
     }
 
-    fputs("===Sorting=By=Ends===\n", programInfo->fileOut);
+    fputs("===Sorting=By=Ends===\n\n", programInfo->fileOut);
 
     for (size_t index = 0; index < programInfo->arrSize; index++){
         if (fprintf(programInfo->fileOut, "%s\n", programInfo->arrLines[index].line) <= 0){
@@ -446,7 +419,7 @@ ErrSuc SortingByEnds(Info *programInfo){
     return RETURN_SUCCESS;
 }
 
-ErrSuc SortingUnsorting(Info *programInfo){
+ErrSuc OutputUnsortedText(Info *programInfo){
     assert(programInfo != NULL);
     assert(programInfo->buffer != NULL);
 
@@ -459,9 +432,9 @@ ErrSuc SortingUnsorting(Info *programInfo){
         return RETURN_ERROR_FILEADD_TASK3;
     }
 
-    RunThroughBufferBack(programInfo);
+    ChangeNullsToEndls(programInfo);
 
-    fputs("===Unsorted===\n", programInfo->fileOut);
+    fputs("===Unsorted=Text===\n\n", programInfo->fileOut);
 
     fwrite(programInfo->buffer, sizeof(char), programInfo->bufSize, programInfo->fileOut);
 
@@ -471,7 +444,7 @@ ErrSuc SortingUnsorting(Info *programInfo){
     return RETURN_SUCCESS;
 }
 
-void RunThroughBuffer(Info *programInfo){
+void ChangeEndlsToNulls(Info *programInfo){
     assert(programInfo != NULL);
 
     size_t endlCount = 0;
@@ -496,7 +469,7 @@ void RunThroughBuffer(Info *programInfo){
     programInfo->arrSize = endlCount;
 }
 
-void RunThroughBufferBack(Info *programInfo){
+void ChangeNullsToEndls(Info *programInfo){
 
     for (size_t index = 0; index < programInfo->bufSize; index++){
         if (programInfo->buffer[index] == '\0'){
@@ -525,20 +498,13 @@ ErrSuc BufferToLinesFragmentation(Info *programInfo){
     int linesIndex = 0;
 
     for (ssize_t index = -1; index < (ssize_t)(programInfo->bufSize - 1); index++){
-        // printf("%d\n", index);
-        // printf("%c\n", buffer[index]);
         
         if (programInfo->buffer[index] == '\0'){
-            //printf("yes\n");
             while((index + 1) < (ssize_t)programInfo->bufSize && programInfo->buffer[index + 1] == '\0'){
-                //printf("huische\n");
                 index++;
-                //printf("%d\n", index);
             }
             programInfo->arrLines[linesIndex].line = programInfo->buffer + (index + 1);
-            //printf("%s\n", arrLines[linesIndex].line);
             linesIndex++;
-            //printf("%d\n\n", linesIndex);
         }
     }
     for (size_t index = 0; index < programInfo->arrSize; index++){

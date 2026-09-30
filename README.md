@@ -21,8 +21,9 @@ This repository contains the code for a program that sorts strings in the text f
 
 
 ## How to start the program in VSCode?
-**This is tutorial how to open program in Visual Studio Code**
-**Program uses MinGW compiler**
+**This is tutorial how to open program in Visual Studio Code!**
+**Program uses MinGW compiler!!**
+**File name shouldn't contains any backspaces!!!**
 
 1. *Ctrl + [ ` ]* || to open console in vscode
 2. *g++ sorting.cpp -o [executable file name]* || to compile project
